@@ -1,7 +1,7 @@
 {
   "name": "orchid-pagination",
   "type": "module",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "packageManager": "pnpm@9.14.2",
   "description": "Orchid ORM query pagination helpers",
   "author": "Ilya Semenov",

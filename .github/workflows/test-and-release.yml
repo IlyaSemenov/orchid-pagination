@@ -63,5 +63,3 @@ jobs:
           publish: bunx --no-install changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # After first publish, configure npm trusted publishing and delete the next line.
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

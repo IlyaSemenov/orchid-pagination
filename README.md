@@ -75,7 +75,9 @@ Cursor queries must be ordered.
 Include a deterministic tie-breaker, usually `id`.
 Treat cursors as opaque strings and pass them back unchanged.
 
-You can order by selected relation fields and aliases as long as the ordered value is present in the query result:
+### Aliases and relations
+
+You can order by selected aliases or by relation paths:
 
 ```ts
 const page = await paginateByCursor(
@@ -84,6 +86,17 @@ const page = await paginateByCursor(
       authorName: q => q.author.get("name"),
     })
     .order("authorName", { id: "DESC" }),
+  { limit: 10 },
+)
+```
+
+```ts
+const page = await paginateByCursor(
+  db.post
+    .select("id", "text", {
+      author: q => q.author.select("id", "name"),
+    })
+    .order("author.name", { id: "DESC" }),
   { limit: 10 },
 )
 ```

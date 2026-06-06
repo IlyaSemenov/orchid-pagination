@@ -1,6 +1,4 @@
-import type { SelectQueryData } from "orchid-orm"
-
-import type { ListQuery } from "./query"
+import type { ListQuery } from "./types"
 
 export interface PaginationConfig {
   /** Default limit. If `maxLimit` is not set, client params limit is ignored. */
@@ -25,7 +23,7 @@ export function getLimit(query: ListQuery, config?: PaginationConfig, params?: P
     return Math.max(1, Math.min(limit, config.maxLimit ?? limit))
   }
 
-  const queryLimit = (query.q as SelectQueryData).limit
+  const queryLimit = query.q.limit
   if (!queryLimit) {
     throw new Error("Set query limit or config.limit.")
   }

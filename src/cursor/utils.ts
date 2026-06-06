@@ -1,14 +1,12 @@
 import { Buffer } from "node:buffer"
 
-import type { SelectQueryData } from "orchid-orm"
-
-import type { ListQuery } from "../query"
+import type { ListQuery } from "../types"
 
 type OrderField = [field: string, asc: boolean]
 
 /** getQueryOrderFields returns ordered query fields as field and ascending-direction pairs. */
 export function getQueryOrderFields(query: ListQuery): OrderField[] {
-  const orderFields = (query.q as SelectQueryData).order?.flatMap<[field: string, asc: boolean]>((orderItem) => {
+  const orderFields = query.q.order?.flatMap<[field: string, asc: boolean]>((orderItem) => {
     if (typeof orderItem === "string") {
       return [[orderItem, true]]
     } else if (typeof orderItem === "object") {

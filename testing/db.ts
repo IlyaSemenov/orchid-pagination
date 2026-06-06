@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach } from "bun:test"
-import { createBaseTable, orchidORM, testTransaction } from "orchid-orm"
+import { createBaseTable, testTransaction } from "orchid-orm"
+import { orchidORM } from "orchid-orm/postgres-js"
 
 const BaseTable = createBaseTable()
 

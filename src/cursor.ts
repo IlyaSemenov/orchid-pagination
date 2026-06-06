@@ -1,9 +1,6 @@
-import type { SortDir } from "orchid-orm"
-import { raw } from "orchid-orm"
-
 import { createDirectedCursor, getQueryOrderFields, parseDirectedCursor } from "./cursor/utils"
 import { getLimit, type PaginationConfig } from "./limit"
-import type { ListQuery } from "./query"
+import type { ListQuery, SortDir } from "./types"
 
 export interface CursorPaginationParams {
   /** Page cursor, as returned by previous call in prevCursor / nextCursor. */
@@ -52,17 +49,21 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: P
 
   if (parsedCursor) {
     // Prepare raw SQL.
-    // For example, for (amount asc, id asc) order, that would be:
+    // For example, for (amount ASC, id DESC) ordering, that would be:
     // (amount, $id) >= ($amount, id)
-    const leftSqlExpr = orderFields.map(([field, asc]) => asc ? field : `$${field}`).join(",")
-    const rightSqlExp = orderFields.map(([field, asc]) => asc ? `$${field}` : field).join(",")
-    const sqlExpr = `(${leftSqlExpr}) > (${rightSqlExp})`
-    const values = Object.fromEntries(orderFields.map(([field], i) => [field, parsedCursor.parts[i]]))
-    query = query.where(raw({ raw: sqlExpr, values }))
+    const leftRawSql = orderFields.map(([field, asc]) => asc ? field : `$${field}`).join(",")
+    const rightRawSql = orderFields.map(([field, asc]) => asc ? `$${field}` : field).join(",")
+    const rawSql = `(${leftRawSql}) > (${rightRawSql})`
+    const rawSqlValues = Object.fromEntries(
+      orderFields.map(([field], i) => [field, parsedCursor.parts[i]]),
+    )
+    const sqlExpr = query.qb.sql({ raw: rawSql, values: rawSqlValues })
+    // query.where doesn't like low-level RawSql objects
+    query = query.where(sqlExpr as any)
   }
 
   // Query 1 extra item to see if we can paginate farther in current direction.
-  const items = await query.limit(limit + 1)
+  const items = await (query as ListQuery).limit(limit + 1) as Awaited<T>
   if (!Array.isArray(items)) {
     throw new TypeError("Query must return an array.")
   }

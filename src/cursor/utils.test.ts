@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test"
-import type { SelectQueryData } from "orchid-orm"
 
 import { db } from "#testing"
 
@@ -60,7 +59,7 @@ describe("getQueryOrderFields", () => {
 
   test("throws on unsupported order direction", () => {
     const query = db.user.order({ id: "ASC" })
-    ;(query.q as SelectQueryData).order = [{ id: "invalid" as any }]
+    query.q.order = [{ id: "invalid" as any }]
 
     expect(() => getQueryOrderFields(query)).toThrow("Unsupported order: invalid")
   })

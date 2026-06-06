@@ -1,5 +1,5 @@
 import { getLimit, type PaginationConfig } from "./limit"
-import type { ListQuery } from "./query"
+import type { ListQuery } from "./types"
 
 export interface PagePaginationParams {
   /** Page, 1-based. */
@@ -36,7 +36,10 @@ export async function paginateByPage<T extends ListQuery>(query: T, config?: Pag
   const page = Math.max(1, params?.page ?? 1)
   const offset = (page - 1) * limit
 
-  const items = await query.offset(offset).limit(limit + 1)
+  const items = await (query as ListQuery).offset(offset).limit(limit + 1) as Awaited<T>
+  if (!Array.isArray(items)) {
+    throw new TypeError("Query must return an array.")
+  }
   const hasContinuation = items.length > limit
   if (hasContinuation) {
     items.splice(limit)

@@ -40,7 +40,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup bun
+      # for npx publish
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
@@ -56,12 +62,20 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost
 
+      - name: Capture new release versions
+        if: ${{ github.ref == env.MAIN_REF }}
+        run: |
+          if bunx @changesets/cli status --output=release.json; then
+            echo "RELEASE=Version $(jq -r '.releases[0].newVersion' release.json)" >> "$GITHUB_ENV"
+            rm release.json
+          fi
+
       - name: Create Release Pull Request or Publish to npm
         if: ${{ github.ref == env.MAIN_REF }}
         uses: changesets/action@v1
         with:
-          publish: bunx --no-install changeset publish
+          publish: npx changeset publish
+          title: ${{ env.RELEASE }}
+          commit: ${{ env.RELEASE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # After first publish, configure npm trusted publishing and delete the next line.
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

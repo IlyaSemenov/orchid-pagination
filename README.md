@@ -57,9 +57,9 @@ defineEventHandler(async (ctx) => {
 Alternatively, pre-create the paginator:
 
 ```ts
-import { createCursorPagination } from "orchid-pagination"
+import { createCursorPaginator } from "orchid-pagination"
 
-const paginate = createCursorPagination({ pageSize: 10, maxPageSize: 1000 })
+const paginate = createCursorPaginator({ pageSize: 10, maxPageSize: 1000 })
 
 defineEventHandler(async (ctx) => {
   const query = db.user.where(conditions).order({ name: "ASC", id: "DESC" })

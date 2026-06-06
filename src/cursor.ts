@@ -22,7 +22,7 @@ export type CursorPaginationPage<T extends ListQuery = ListQuery> = {
   nextCursor?: string
 }
 
-export async function createCursorPaginator(config?: PaginationConfig) {
+export function createCursorPaginator(config?: PaginationConfig) {
   return function paginate<T extends ListQuery>(query: T, params?: CursorPaginationParams) {
     return paginateByCursor(query, config, params)
   }

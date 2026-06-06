@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { db, getIds, seedUsers } from "#testing"
+import { db, getIds, seedPosts, seedUsers } from "#testing"
 
 import { paginateByCursor } from "./paginator"
 
@@ -70,6 +70,123 @@ describe("paginateByCursor", () => {
 
     expect(getIds(first.items)).toEqual([2, 1, 4])
     expect(getIds(second.items)).toEqual([3])
+  })
+
+  test("paginates forward ordered by a relation column", async () => {
+    await seedUsers([
+      { id: 1, name: "Alice", score: 10, group: "one" },
+      { id: 2, name: "Bob", score: 20, group: "one" },
+      { id: 3, name: "Carol", score: 30, group: "one" },
+    ])
+    await seedPosts([
+      { id: 1, authorId: 1, text: "Alice first" },
+      { id: 2, authorId: 1, text: "Alice second" },
+      { id: 3, authorId: 2, text: "Bob first" },
+      { id: 4, authorId: 3, text: "Carol first" },
+      { id: 5, authorId: 3, text: "Carol second" },
+    ])
+
+    const query = () => db.post
+      .select("id", "text", {
+        author: q => q.author.select("id", "name"),
+      })
+      .order("author.name", { id: "DESC" })
+
+    const first = await paginateByCursor(query(), { limit: 2 })
+    const second = await paginateByCursor(query(), { limit: 2 }, { cursor: first.nextCursor })
+
+    expect(getIds(first.items)).toEqual([2, 1])
+    expect(first.nextCursor).toBeTypeOf("string")
+    expect(getIds(second.items)).toEqual([3, 5])
+  })
+
+  test("paginates forward ordered by a relation column alias", async () => {
+    await seedUsers([
+      { id: 1, name: "Alice", score: 10, group: "one" },
+      { id: 2, name: "Bob", score: 20, group: "one" },
+      { id: 3, name: "Carol", score: 30, group: "one" },
+    ])
+    await seedPosts([
+      { id: 1, authorId: 1, text: "Alice first" },
+      { id: 2, authorId: 1, text: "Alice second" },
+      { id: 3, authorId: 2, text: "Bob first" },
+      { id: 4, authorId: 3, text: "Carol first" },
+      { id: 5, authorId: 3, text: "Carol second" },
+    ])
+
+    const query = () => db.post
+      .select("id", "text", {
+        authorName: q => q.author.get("name"),
+      })
+      .order("authorName", { id: "DESC" })
+
+    const first = await paginateByCursor(query(), { limit: 2 })
+    const second = await paginateByCursor(query(), { limit: 2 }, { cursor: first.nextCursor })
+
+    expect(getIds(first.items)).toEqual([2, 1])
+    expect(first.nextCursor).toBeTypeOf("string")
+    expect(getIds(second.items)).toEqual([3, 5])
+  })
+
+  test("paginates forward ordered by a relation aggregate alias", async () => {
+    await seedUsers([
+      { id: 1, name: "Alice", score: 10, group: "one" },
+      { id: 2, name: "Bob", score: 20, group: "one" },
+      { id: 3, name: "Carol", score: 30, group: "one" },
+      { id: 4, name: "Dave", score: 40, group: "one" },
+    ])
+    await seedPosts([
+      { id: 1, authorId: 1, text: "Alice first" },
+      { id: 2, authorId: 1, text: "Alice second" },
+      { id: 3, authorId: 2, text: "Bob first" },
+      { id: 4, authorId: 3, text: "Carol first" },
+      { id: 5, authorId: 3, text: "Carol second" },
+    ])
+
+    const query = () => db.user
+      .select("id", "name", {
+        postsCount: q => q.posts.count(),
+      })
+      .order({ postsCount: "DESC" }, "name", "id")
+
+    const first = await paginateByCursor(query(), { limit: 2 })
+    const second = await paginateByCursor(query(), { limit: 2 }, { cursor: first.nextCursor })
+
+    expect(getIds(first.items)).toEqual([1, 3])
+    expect(first.nextCursor).toBeTypeOf("string")
+    expect(getIds(second.items)).toEqual([2, 4])
+    expect(second.nextCursor).toBeUndefined()
+  })
+
+  test("uses prevCursor with a relation column alias order", async () => {
+    await seedUsers([
+      { id: 1, name: "Alice", score: 10, group: "one" },
+      { id: 2, name: "Bob", score: 20, group: "one" },
+      { id: 3, name: "Carol", score: 30, group: "one" },
+    ])
+    await seedPosts([
+      { id: 1, authorId: 1, text: "Alice first" },
+      { id: 2, authorId: 1, text: "Alice second" },
+      { id: 3, authorId: 2, text: "Bob first" },
+      { id: 4, authorId: 3, text: "Carol first" },
+      { id: 5, authorId: 3, text: "Carol second" },
+    ])
+
+    const query = () => db.post
+      .select("id", "text", {
+        authorName: q => q.author.get("name"),
+      })
+      .order("authorName", { id: "DESC" })
+
+    const first = await paginateByCursor(query(), { limit: 2 })
+    const second = await paginateByCursor(query(), { limit: 2 }, { cursor: first.nextCursor })
+    const back = await paginateByCursor(query(), { limit: 2 }, { cursor: second.prevCursor })
+
+    expect(getIds(first.items)).toEqual([2, 1])
+    expect(getIds(second.items)).toEqual([3, 5])
+    expect(getIds(back.items)).toEqual([2, 1])
+    expect(back.prevCursor).toBeUndefined()
+    expect(back.nextCursor).toBeTypeOf("string")
   })
 
   test("uses prevCursor to page backward in display order", async () => {

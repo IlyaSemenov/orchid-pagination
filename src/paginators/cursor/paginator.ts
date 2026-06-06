@@ -1,6 +1,8 @@
-import { createDirectedCursor, getQueryOrderFields, parseDirectedCursor } from "./cursor/utils"
-import { getLimit, type PaginationConfig } from "./limit"
-import type { ListQuery, SortDir } from "./types"
+import { getLimit, type PaginationConfig } from "../../limit"
+import type { ListQuery, SortDir } from "../../types"
+
+import { createDirectedCursor, parseDirectedCursor } from "./cursor"
+import { getQueryOrderFields } from "./order"
 
 export interface CursorPaginationParams {
   /** Page cursor, as returned by previous call in prevCursor / nextCursor. */
@@ -17,13 +19,6 @@ export type CursorPaginationPage<T extends ListQuery = ListQuery> = {
   prevCursor?: string
   /** Cursor pointing to next page. */
   nextCursor?: string
-}
-
-/** createCursorPaginator creates a reusable cursor paginator with the given config. */
-export function createCursorPaginator(config?: PaginationConfig) {
-  return function paginate<T extends ListQuery>(query: T, params?: CursorPaginationParams) {
-    return paginateByCursor(query, config, params)
-  }
 }
 
 /** paginateByCursor returns one page of results using cursor-based pagination. */

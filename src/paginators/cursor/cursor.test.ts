@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { db } from "#testing"
-
-import { createCursor, createDirectedCursor, getQueryOrderFields, parseCursor, parseDirectedCursor } from "./utils"
+import { createCursor, createDirectedCursor, parseCursor, parseDirectedCursor } from "./cursor"
 
 describe("cursor encoding", () => {
   test("round-trips cursor parts", () => {
@@ -38,29 +36,5 @@ describe("directed cursor encoding", () => {
     expect(parsed.cursor).toBeTypeOf("string")
     expect(parsed.parts).toEqual(["1", "2"])
     expect(parsed.reverse).toBe(true)
-  })
-})
-
-describe("getQueryOrderFields", () => {
-  test("parses string order as ascending", () => {
-    expect(getQueryOrderFields(db.user.order("name"))).toEqual([["name", true]])
-  })
-
-  test("parses object order directions", () => {
-    expect(getQueryOrderFields(db.user.order({ score: "ASC", id: "DESC" }))).toEqual([
-      ["score", true],
-      ["id", false],
-    ])
-  })
-
-  test("throws on unordered query", () => {
-    expect(() => getQueryOrderFields(db.user.all())).toThrow("Query must be ordered.")
-  })
-
-  test("throws on unsupported order direction", () => {
-    const query = db.user.order({ id: "ASC" })
-    query.q.order = [{ id: "invalid" as any }]
-
-    expect(() => getQueryOrderFields(query)).toThrow("Unsupported order: invalid")
   })
 })

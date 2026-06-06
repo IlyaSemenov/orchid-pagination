@@ -1,23 +1,8 @@
 import { describe, expect, test } from "bun:test"
 
-import { db } from "#testing"
+import { db, getIds, seedUsers } from "#testing"
 
-import { createCursorPaginator, paginateByCursor } from "./cursor"
-
-type UserSeed = {
-  id: number
-  name: string
-  score: number
-  group: string
-}
-
-async function seedUsers(rows: UserSeed[]) {
-  return await db.user.insertMany(rows).pluck("id")
-}
-
-function userIds(items: Array<{ id: number }>) {
-  return items.map(item => item.id)
-}
+import { paginateByCursor } from "./paginator"
 
 describe("paginateByCursor", () => {
   test("throws for unordered queries", async () => {
@@ -34,10 +19,10 @@ describe("paginateByCursor", () => {
     const first = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 2 })
     const second = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 2 }, { cursor: first.nextCursor })
 
-    expect(userIds(first.items)).toEqual([1, 2])
+    expect(getIds(first.items)).toEqual([1, 2])
     expect(first.prevCursor).toBeUndefined()
     expect(first.nextCursor).toBeTypeOf("string")
-    expect(userIds(second.items)).toEqual([3])
+    expect(getIds(second.items)).toEqual([3])
     expect(second.prevCursor).toBeTypeOf("string")
     expect(second.nextCursor).toBeUndefined()
   })
@@ -52,8 +37,8 @@ describe("paginateByCursor", () => {
     const first = await paginateByCursor(db.user.order({ id: "DESC" }), { limit: 2 })
     const second = await paginateByCursor(db.user.order({ id: "DESC" }), { limit: 2 }, { cursor: first.nextCursor })
 
-    expect(userIds(first.items)).toEqual([3, 2])
-    expect(userIds(second.items)).toEqual([1])
+    expect(getIds(first.items)).toEqual([3, 2])
+    expect(getIds(second.items)).toEqual([1])
   })
 
   test("uses tie-breaker fields for stable ordering", async () => {
@@ -67,8 +52,8 @@ describe("paginateByCursor", () => {
     const first = await paginateByCursor(db.user.order({ score: "ASC", id: "ASC" }), { limit: 2 })
     const second = await paginateByCursor(db.user.order({ score: "ASC", id: "ASC" }), { limit: 2 }, { cursor: first.nextCursor })
 
-    expect(userIds(first.items)).toEqual([1, 2])
-    expect(userIds(second.items)).toEqual([3, 4])
+    expect(getIds(first.items)).toEqual([1, 2])
+    expect(getIds(second.items)).toEqual([3, 4])
     expect(second.nextCursor).toBeUndefined()
   })
 
@@ -83,8 +68,8 @@ describe("paginateByCursor", () => {
     const first = await paginateByCursor(db.user.order({ score: "ASC", id: "DESC" }), { limit: 3 })
     const second = await paginateByCursor(db.user.order({ score: "ASC", id: "DESC" }), { limit: 3 }, { cursor: first.nextCursor })
 
-    expect(userIds(first.items)).toEqual([2, 1, 4])
-    expect(userIds(second.items)).toEqual([3])
+    expect(getIds(first.items)).toEqual([2, 1, 4])
+    expect(getIds(second.items)).toEqual([3])
   })
 
   test("uses prevCursor to page backward in display order", async () => {
@@ -100,9 +85,9 @@ describe("paginateByCursor", () => {
     const second = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 2 }, { cursor: first.nextCursor })
     const back = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 2 }, { cursor: second.prevCursor })
 
-    expect(userIds(first.items)).toEqual([1, 2])
-    expect(userIds(second.items)).toEqual([3, 4])
-    expect(userIds(back.items)).toEqual([1, 2])
+    expect(getIds(first.items)).toEqual([1, 2])
+    expect(getIds(second.items)).toEqual([3, 4])
+    expect(getIds(back.items)).toEqual([1, 2])
     expect(back.prevCursor).toBeUndefined()
     expect(back.nextCursor).toBeTypeOf("string")
   })
@@ -116,23 +101,7 @@ describe("paginateByCursor", () => {
 
     const page = await paginateByCursor(db.user.order({ id: "ASC" }), { maxLimit: 2 }, { limit: 10 })
 
-    expect(userIds(page.items)).toEqual([1, 2])
+    expect(getIds(page.items)).toEqual([1, 2])
     expect(page.limit).toBe(2)
-  })
-})
-
-describe("createCursorPaginator", () => {
-  test("creates a reusable paginator with config", async () => {
-    await seedUsers([
-      { id: 1, name: "a", score: 10, group: "one" },
-      { id: 2, name: "b", score: 20, group: "one" },
-      { id: 3, name: "c", score: 30, group: "one" },
-    ])
-
-    const paginate = createCursorPaginator({ limit: 2 })
-    const page = await paginate(db.user.order({ id: "ASC" }))
-
-    expect(userIds(page.items)).toEqual([1, 2])
-    expect(page.nextCursor).toBeTypeOf("string")
   })
 })

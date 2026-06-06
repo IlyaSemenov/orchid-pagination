@@ -1,5 +1,5 @@
-import { getLimit, type PaginationConfig } from "./limit"
-import type { ListQuery } from "./types"
+import { getLimit, type PaginationConfig } from "../../limit"
+import type { ListQuery } from "../../types"
 
 export interface PagePaginationParams {
   /** Page, 1-based. */
@@ -20,13 +20,6 @@ export type PagePaginationPage<T extends ListQuery = ListQuery> = {
   prevPage?: number
   /** Next page number (if exists). */
   nextPage?: number
-}
-
-/** createPagePaginator creates a reusable page paginator with the given config. */
-export function createPagePaginator(config?: PaginationConfig) {
-  return function paginate<T extends ListQuery>(query: T, params?: PagePaginationParams) {
-    return paginateByPage(query, config, params)
-  }
 }
 
 /** paginateByPage returns one page of results using offset-based pagination. */

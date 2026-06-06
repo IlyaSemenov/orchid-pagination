@@ -1,4 +1,4 @@
-export * from "./cursor"
 export * from "./limit"
-export * from "./page"
+export * from "./paginators/cursor"
+export * from "./paginators/page"
 export * from "./types"

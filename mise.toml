@@ -1,5 +1,2 @@
-[settings]
-node.corepack = true
-
 [tools]
-node = '22.7'
+bun = "1.3.14"

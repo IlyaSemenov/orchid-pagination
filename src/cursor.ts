@@ -1,9 +1,9 @@
 import type { SortDir } from "orchid-orm"
 import { raw } from "orchid-orm"
 
-import type { ListQuery, PaginationConfig } from "./base"
-import { getPageSize } from "./base"
 import { createDirectedCursor, getQueryOrderFields, parseDirectedCursor } from "./cursor/utils"
+import { getPageSize, type PaginationConfig } from "./pageSize"
+import type { ListQuery } from "./query"
 
 export interface CursorPaginationParams {
   /** Page cursor, as returned by previous call in prevCursor / nextCursor. */
@@ -22,12 +22,14 @@ export type CursorPaginationPage<T extends ListQuery = ListQuery> = {
   nextCursor?: string
 }
 
+/** createCursorPaginator creates a reusable cursor paginator with the given config. */
 export function createCursorPaginator(config?: PaginationConfig) {
   return function paginate<T extends ListQuery>(query: T, params?: CursorPaginationParams) {
     return paginateByCursor(query, config, params)
   }
 }
 
+/** paginateByCursor returns one page of results using cursor-based pagination. */
 export async function paginateByCursor<T extends ListQuery>(query: T, config?: PaginationConfig, params?: CursorPaginationParams): Promise<CursorPaginationPage<T>> {
   const size = getPageSize(query, config, params)
 

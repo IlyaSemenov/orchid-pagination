@@ -9,6 +9,8 @@ class UserTable extends BaseTable {
   override columns = this.setColumns(t => ({
     id: t.serial().primaryKey(),
     name: t.varchar(),
+    score: t.integer(),
+    group: t.varchar(),
   }))
 }
 
@@ -22,7 +24,7 @@ export const db = orchidORM(
 export function useTestDb() {
   beforeAll(async () => {
     await testTransaction.start(db)
-    await db.$query`create table "user" (id serial not null primary key, name varchar not null)`
+    await db.$query`create table "user" (id serial not null primary key, name varchar not null, score integer not null, "group" varchar not null)`
   })
 
   beforeEach(async () => {

@@ -2,7 +2,7 @@ import { expectTypeOf, test } from "bun:test"
 
 import { db } from "#testing"
 
-import type { ListQuery } from "./base"
+import type { ListQuery } from "./query"
 
 async function getQueryResult<T extends ListQuery>(query: T) {
   return await query
@@ -13,7 +13,7 @@ test("ListQuery generic result", () => {
 })
 
 test("ListQuery type inference", async () => {
-  const users = await getQueryResult(db.user.all())
+  const users = await getQueryResult(db.user.select("id", "name"))
   expectTypeOf<typeof users>().toEqualTypeOf<Array<{ id: number, name: string }>>()
   void users
 })

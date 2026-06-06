@@ -1,4 +1,5 @@
-import { getPageSize, type ListQuery, type PaginationConfig } from "./base"
+import { getPageSize, type PaginationConfig } from "./pageSize"
+import type { ListQuery } from "./query"
 
 export interface PagePaginationParams {
   /** Page, 1-based. */
@@ -15,18 +16,20 @@ export type PagePaginationPage<T extends ListQuery = ListQuery> = {
   size: number
   /** Offset of the first item, 1-based. */
   offset: number
-  /** Prev page numberm (if exists). */
+  /** Prev page number (if exists). */
   prevPage?: number
   /** Next page number (if exists). */
   nextPage?: number
 }
 
+/** createPagePaginator creates a reusable page paginator with the given config. */
 export function createPagePaginator(config?: PaginationConfig) {
   return function paginate<T extends ListQuery>(query: T, params?: PagePaginationParams) {
     return paginateByPage(query, config, params)
   }
 }
 
+/** paginateByPage returns one page of results using offset-based pagination. */
 export async function paginateByPage<T extends ListQuery>(query: T, config?: PaginationConfig, params?: PagePaginationParams): Promise<PagePaginationPage<T>> {
   const size = getPageSize(query, config, params)
 

@@ -1,8 +1,6 @@
-import type { Query, QueryThen, SelectQueryData } from "orchid-orm"
+import type { SelectQueryData } from "orchid-orm"
 
-export interface ListQuery extends Query {
-  then: QueryThen<unknown[]>
-}
+import type { ListQuery } from "./query"
 
 export interface PaginationConfig {
   /** Default page size. If not set, `maxPageSize` is used. */
@@ -16,6 +14,7 @@ export interface PaginationParams {
   size?: number
 }
 
+/** getPageSize returns the effective page size for a query and pagination parameters. */
 export function getPageSize(query: ListQuery, config?: PaginationConfig, params?: PaginationParams): number {
   const queryLimit = (query.q as SelectQueryData).limit
 

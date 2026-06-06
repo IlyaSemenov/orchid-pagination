@@ -19,7 +19,7 @@ import { paginateByPage } from "orchid-pagination"
 defineEventHandler(async (ctx) => {
   const query = db.user.where(conditions).order({ name: "ASC", id: "DESC" })
   const params = getValidatedParams(ctx) // prepare object with { page?, size? }
-  const page = await paginateByPage(query, { pageSize: 10, maxPageSize: 1000 }, ctx.params)
+  const page = await paginateByPage(query, { pageSize: 10, maxPageSize: 1000 }, params)
   return page
 })
 ```
@@ -39,7 +39,7 @@ defineEventHandler(async (ctx) => {
 })
 ```
 
-The page will have `items`, and possibly `nextPage` and/or `prevPage`.
+The page has `{ items, page, size, offset, prevPage?, nextPage? }`.
 
 ## Cursor pagination
 
@@ -49,7 +49,7 @@ import { paginateByCursor } from "orchid-pagination"
 defineEventHandler(async (ctx) => {
   const query = db.user.where(conditions).order({ name: "ASC", id: "DESC" })
   const params = getValidatedParams(ctx) // prepare object with { cursor?, size? }
-  const page = await paginateByCursor(query, { pageSize: 10, maxPageSize: 1000 }, ctx.params)
+  const page = await paginateByCursor(query, { pageSize: 10, maxPageSize: 1000 }, params)
   return page
 })
 ```
@@ -69,4 +69,15 @@ defineEventHandler(async (ctx) => {
 })
 ```
 
-The page will have `items`, and possibly `nextCursor` and/or `prevCursor` which should be sent in subsequent calls to paginate forth and back.
+The page has `{ items, size, prevCursor?, nextCursor? }`.
+
+Cursor queries must be ordered.
+Include a deterministic tie-breaker, usually `id`.
+Treat cursors as opaque strings and pass them back unchanged.
+
+## Pagination config
+
+- `pageSize`: default page size.
+- `maxPageSize`: max accepted `size`.
+- Requested `size` is clamped to `[1, maxPageSize]`.
+- Without config, query `.limit(...)` is required and used as the max size.

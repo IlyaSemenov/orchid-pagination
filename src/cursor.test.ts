@@ -21,7 +21,7 @@ function userIds(items: Array<{ id: number }>) {
 
 describe("paginateByCursor", () => {
   test("throws for unordered queries", async () => {
-    await expect(paginateByCursor(db.user.all(), { pageSize: 2 })).rejects.toThrow("Query must be ordered.")
+    await expect(paginateByCursor(db.user.all(), { limit: 2 })).rejects.toThrow("Query must be ordered.")
   })
 
   test("paginates forward with single-field ascending order", async () => {
@@ -31,8 +31,8 @@ describe("paginateByCursor", () => {
       { id: 3, name: "c", score: 30, group: "one" },
     ])
 
-    const first = await paginateByCursor(db.user.order({ id: "ASC" }), { pageSize: 2 })
-    const second = await paginateByCursor(db.user.order({ id: "ASC" }), { pageSize: 2 }, { cursor: first.nextCursor })
+    const first = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 2 })
+    const second = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 2 }, { cursor: first.nextCursor })
 
     expect(userIds(first.items)).toEqual([1, 2])
     expect(first.prevCursor).toBeUndefined()
@@ -49,8 +49,8 @@ describe("paginateByCursor", () => {
       { id: 3, name: "c", score: 30, group: "one" },
     ])
 
-    const first = await paginateByCursor(db.user.order({ id: "DESC" }), { pageSize: 2 })
-    const second = await paginateByCursor(db.user.order({ id: "DESC" }), { pageSize: 2 }, { cursor: first.nextCursor })
+    const first = await paginateByCursor(db.user.order({ id: "DESC" }), { limit: 2 })
+    const second = await paginateByCursor(db.user.order({ id: "DESC" }), { limit: 2 }, { cursor: first.nextCursor })
 
     expect(userIds(first.items)).toEqual([3, 2])
     expect(userIds(second.items)).toEqual([1])
@@ -64,8 +64,8 @@ describe("paginateByCursor", () => {
       { id: 4, name: "d", score: 20, group: "one" },
     ])
 
-    const first = await paginateByCursor(db.user.order({ score: "ASC", id: "ASC" }), { pageSize: 2 })
-    const second = await paginateByCursor(db.user.order({ score: "ASC", id: "ASC" }), { pageSize: 2 }, { cursor: first.nextCursor })
+    const first = await paginateByCursor(db.user.order({ score: "ASC", id: "ASC" }), { limit: 2 })
+    const second = await paginateByCursor(db.user.order({ score: "ASC", id: "ASC" }), { limit: 2 }, { cursor: first.nextCursor })
 
     expect(userIds(first.items)).toEqual([1, 2])
     expect(userIds(second.items)).toEqual([3, 4])
@@ -80,8 +80,8 @@ describe("paginateByCursor", () => {
       { id: 4, name: "d", score: 20, group: "one" },
     ])
 
-    const first = await paginateByCursor(db.user.order({ score: "ASC", id: "DESC" }), { pageSize: 3 })
-    const second = await paginateByCursor(db.user.order({ score: "ASC", id: "DESC" }), { pageSize: 3 }, { cursor: first.nextCursor })
+    const first = await paginateByCursor(db.user.order({ score: "ASC", id: "DESC" }), { limit: 3 })
+    const second = await paginateByCursor(db.user.order({ score: "ASC", id: "DESC" }), { limit: 3 }, { cursor: first.nextCursor })
 
     expect(userIds(first.items)).toEqual([2, 1, 4])
     expect(userIds(second.items)).toEqual([3])
@@ -96,9 +96,9 @@ describe("paginateByCursor", () => {
       { id: 5, name: "e", score: 50, group: "one" },
     ])
 
-    const first = await paginateByCursor(db.user.order({ id: "ASC" }), { pageSize: 2 })
-    const second = await paginateByCursor(db.user.order({ id: "ASC" }), { pageSize: 2 }, { cursor: first.nextCursor })
-    const back = await paginateByCursor(db.user.order({ id: "ASC" }), { pageSize: 2 }, { cursor: second.prevCursor })
+    const first = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 2 })
+    const second = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 2 }, { cursor: first.nextCursor })
+    const back = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 2 }, { cursor: second.prevCursor })
 
     expect(userIds(first.items)).toEqual([1, 2])
     expect(userIds(second.items)).toEqual([3, 4])
@@ -107,17 +107,17 @@ describe("paginateByCursor", () => {
     expect(back.nextCursor).toBeTypeOf("string")
   })
 
-  test("clamps requested size by config", async () => {
+  test("clamps requested limit by config", async () => {
     await seedUsers([
       { id: 1, name: "a", score: 10, group: "one" },
       { id: 2, name: "b", score: 20, group: "one" },
       { id: 3, name: "c", score: 30, group: "one" },
     ])
 
-    const page = await paginateByCursor(db.user.order({ id: "ASC" }), { maxPageSize: 2 }, { size: 10 })
+    const page = await paginateByCursor(db.user.order({ id: "ASC" }), { maxLimit: 2 }, { limit: 10 })
 
     expect(userIds(page.items)).toEqual([1, 2])
-    expect(page.size).toBe(2)
+    expect(page.limit).toBe(2)
   })
 })
 
@@ -129,7 +129,7 @@ describe("createCursorPaginator", () => {
       { id: 3, name: "c", score: 30, group: "one" },
     ])
 
-    const paginate = createCursorPaginator({ pageSize: 2 })
+    const paginate = createCursorPaginator({ limit: 2 })
     const page = await paginate(db.user.order({ id: "ASC" }))
 
     expect(userIds(page.items)).toEqual([1, 2])

@@ -27,10 +27,10 @@ describe("paginateByPage", () => {
       { id: 3, name: "c", score: 30, group: "one" },
     ])
 
-    const page = await paginateByPage(db.user.order({ id: "ASC" }), { pageSize: 2 })
+    const page = await paginateByPage(db.user.order({ id: "ASC" }), { limit: 2 })
 
     expect(userIds(page.items)).toEqual([1, 2])
-    expect(page).toMatchObject({ page: 1, size: 2, offset: 0, nextPage: 2 })
+    expect(page).toMatchObject({ page: 1, limit: 2, offset: 0, nextPage: 2 })
     expect(page.prevPage).toBeUndefined()
   })
 
@@ -43,10 +43,10 @@ describe("paginateByPage", () => {
       { id: 5, name: "e", score: 50, group: "one" },
     ])
 
-    const page = await paginateByPage(db.user.order({ id: "ASC" }), { pageSize: 2 }, { page: 2 })
+    const page = await paginateByPage(db.user.order({ id: "ASC" }), { limit: 2 }, { page: 2 })
 
     expect(userIds(page.items)).toEqual([3, 4])
-    expect(page).toMatchObject({ page: 2, size: 2, offset: 2, prevPage: 1, nextPage: 3 })
+    expect(page).toMatchObject({ page: 2, limit: 2, offset: 2, prevPage: 1, nextPage: 3 })
   })
 
   test("returns the last page without a next page", async () => {
@@ -56,10 +56,10 @@ describe("paginateByPage", () => {
       { id: 3, name: "c", score: 30, group: "one" },
     ])
 
-    const page = await paginateByPage(db.user.order({ id: "ASC" }), { pageSize: 2 }, { page: 2 })
+    const page = await paginateByPage(db.user.order({ id: "ASC" }), { limit: 2 }, { page: 2 })
 
     expect(userIds(page.items)).toEqual([3])
-    expect(page).toMatchObject({ page: 2, size: 2, offset: 2, prevPage: 1 })
+    expect(page).toMatchObject({ page: 2, limit: 2, offset: 2, prevPage: 1 })
     expect(page.nextPage).toBeUndefined()
   })
 
@@ -69,24 +69,24 @@ describe("paginateByPage", () => {
       { id: 2, name: "b", score: 20, group: "one" },
     ])
 
-    const page = await paginateByPage(db.user.order({ id: "ASC" }), { pageSize: 1 }, { page: -10 })
+    const page = await paginateByPage(db.user.order({ id: "ASC" }), { limit: 1 }, { page: -10 })
 
     expect(userIds(page.items)).toEqual([1])
-    expect(page).toMatchObject({ page: 1, size: 1, offset: 0, nextPage: 2 })
+    expect(page).toMatchObject({ page: 1, limit: 1, offset: 0, nextPage: 2 })
     expect(page.prevPage).toBeUndefined()
   })
 
-  test("clamps requested size by config", async () => {
+  test("clamps requested limit by config", async () => {
     await seedUsers([
       { id: 1, name: "a", score: 10, group: "one" },
       { id: 2, name: "b", score: 20, group: "one" },
       { id: 3, name: "c", score: 30, group: "one" },
     ])
 
-    const page = await paginateByPage(db.user.order({ id: "ASC" }), { maxPageSize: 2 }, { size: 10 })
+    const page = await paginateByPage(db.user.order({ id: "ASC" }), { maxLimit: 2 }, { limit: 10 })
 
     expect(userIds(page.items)).toEqual([1, 2])
-    expect(page.size).toBe(2)
+    expect(page.limit).toBe(2)
   })
 })
 
@@ -98,7 +98,7 @@ describe("createPagePaginator", () => {
       { id: 3, name: "c", score: 30, group: "one" },
     ])
 
-    const paginate = createPagePaginator({ pageSize: 2 })
+    const paginate = createPagePaginator({ limit: 2 })
     const page = await paginate(db.user.order({ id: "ASC" }))
 
     expect(userIds(page.items)).toEqual([1, 2])

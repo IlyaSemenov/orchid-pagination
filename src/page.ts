@@ -1,19 +1,19 @@
-import { getPageSize, type PaginationConfig } from "./pageSize"
+import { getLimit, type PaginationConfig } from "./limit"
 import type { ListQuery } from "./query"
 
 export interface PagePaginationParams {
   /** Page, 1-based. */
   page?: number
-  /** Page size. */
-  size?: number
+  /** Limit. */
+  limit?: number
 }
 
 export type PagePaginationPage<T extends ListQuery = ListQuery> = {
   items: Awaited<T>
   /** Effective page number. */
   page: number
-  /** Effective page size. Number of items is guaranteed to be less or equal. */
-  size: number
+  /** Effective limit. Number of items is guaranteed to be less or equal. */
+  limit: number
   /** Offset of the first item, 1-based. */
   offset: number
   /** Prev page number (if exists). */
@@ -31,19 +31,19 @@ export function createPagePaginator(config?: PaginationConfig) {
 
 /** paginateByPage returns one page of results using offset-based pagination. */
 export async function paginateByPage<T extends ListQuery>(query: T, config?: PaginationConfig, params?: PagePaginationParams): Promise<PagePaginationPage<T>> {
-  const size = getPageSize(query, config, params)
+  const limit = getLimit(query, config, params)
 
   const page = Math.max(1, params?.page ?? 1)
-  const offset = (page - 1) * size
+  const offset = (page - 1) * limit
 
-  const items = await query.offset(offset).limit(size + 1)
-  const hasContinuation = items.length > size
+  const items = await query.offset(offset).limit(limit + 1)
+  const hasContinuation = items.length > limit
   if (hasContinuation) {
-    items.splice(size)
+    items.splice(limit)
   }
 
   const prevPage = page > 1 ? page - 1 : undefined
   const nextPage = hasContinuation ? page + 1 : undefined
 
-  return { items, page, size, offset, prevPage, nextPage }
+  return { items, page, limit, offset, prevPage, nextPage }
 }

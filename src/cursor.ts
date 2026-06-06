@@ -2,20 +2,20 @@ import type { SortDir } from "orchid-orm"
 import { raw } from "orchid-orm"
 
 import { createDirectedCursor, getQueryOrderFields, parseDirectedCursor } from "./cursor/utils"
-import { getPageSize, type PaginationConfig } from "./pageSize"
+import { getLimit, type PaginationConfig } from "./limit"
 import type { ListQuery } from "./query"
 
 export interface CursorPaginationParams {
   /** Page cursor, as returned by previous call in prevCursor / nextCursor. */
   cursor?: string
-  /** Page size. */
-  size?: number
+  /** Limit. */
+  limit?: number
 }
 
 export type CursorPaginationPage<T extends ListQuery = ListQuery> = {
   items: Awaited<T>
-  /** Effective page size. Number of items is guaranteed to be less or equal. */
-  size: number
+  /** Effective limit. Number of items is guaranteed to be less or equal. */
+  limit: number
   /** Cursor pointing to previous page. */
   prevCursor?: string
   /** Cursor pointing to next page. */
@@ -31,7 +31,7 @@ export function createCursorPaginator(config?: PaginationConfig) {
 
 /** paginateByCursor returns one page of results using cursor-based pagination. */
 export async function paginateByCursor<T extends ListQuery>(query: T, config?: PaginationConfig, params?: CursorPaginationParams): Promise<CursorPaginationPage<T>> {
-  const size = getPageSize(query, config, params)
+  const limit = getLimit(query, config, params)
 
   const orderFields = getQueryOrderFields(query)
 
@@ -62,13 +62,13 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: P
   }
 
   // Query 1 extra item to see if we can paginate farther in current direction.
-  const items = await query.limit(size + 1)
+  const items = await query.limit(limit + 1)
   if (!Array.isArray(items)) {
     throw new TypeError("Query must return an array.")
   }
-  const hasContinuation = items.length > size
+  const hasContinuation = items.length > limit
   if (hasContinuation) {
-    items.splice(size)
+    items.splice(limit)
   }
   if (reverse) {
     items.reverse()
@@ -96,5 +96,5 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: P
     ? createItemCursor(items.at(-1), false)
     : undefined
 
-  return { items, size, prevCursor, nextCursor }
+  return { items, limit, prevCursor, nextCursor }
 }

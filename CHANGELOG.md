@@ -1,5 +1,11 @@
 # orchid-pagination
 
+## 2.1.0
+
+### Minor Changes
+
+- dee1f2d: Add `total` and `clampPage` options to page number paginator.
+
 ## 2.0.0
 
 ### Major Changes

@@ -2,23 +2,23 @@ import { getLimit, type PaginationConfig } from "../../limit"
 import type { ListQuery } from "../../types"
 
 export interface PagePaginationParams {
-  /** Page, 1-based. */
+  /** Page number, 1-based. */
   page?: number
-  /** Limit. */
+  /** Page size. */
   limit?: number
 }
 
 export type PagePaginationPage<T extends ListQuery = ListQuery> = {
   items: Awaited<T>
-  /** Effective page number. */
+  /** Effective page number, 1-based. */
   page: number
-  /** Effective limit. Number of items is guaranteed to be less or equal. */
+  /** Effective page size. Number of items is guaranteed to be less or equal. */
   limit: number
-  /** Offset of the first item, 1-based. */
+  /** Offset passed to the query, 0-based. */
   offset: number
-  /** Prev page number (if exists). */
+  /** Previous page number, if it exists. */
   prevPage?: number
-  /** Next page number (if exists). */
+  /** Next page number, if it exists. */
   nextPage?: number
 }
 

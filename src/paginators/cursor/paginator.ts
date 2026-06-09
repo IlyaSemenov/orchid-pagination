@@ -5,19 +5,19 @@ import { createDirectedCursor, parseDirectedCursor } from "./cursor"
 import { getQueryOrderFields } from "./order"
 
 export interface CursorPaginationParams {
-  /** Page cursor, as returned by previous call in prevCursor / nextCursor. */
+  /** Cursor returned as prevCursor or nextCursor by a previous call. */
   cursor?: string
-  /** Limit. */
+  /** Page size. */
   limit?: number
 }
 
 export type CursorPaginationPage<T extends ListQuery = ListQuery> = {
   items: Awaited<T>
-  /** Effective limit. Number of items is guaranteed to be less or equal. */
+  /** Effective page size. Number of items is guaranteed to be less than or equal to this value. */
   limit: number
-  /** Cursor pointing to previous page. */
+  /** Cursor for fetching the previous page, if it exists. */
   prevCursor?: string
-  /** Cursor pointing to next page. */
+  /** Cursor for fetching the next page, if it exists. */
   nextCursor?: string
 }
 

@@ -108,8 +108,8 @@ const page = await paginateByCursor(
 
 ## Pagination config
 
-- `limit`: default limit.
-- `maxLimit`: max accepted client `limit`.
-- Client `limit` is ignored unless `maxLimit` is set.
-- With only `maxLimit`, client `limit` is required.
-- Without config, query `.limit(...)` is required.
+- `limit`: default page size.
+- `maxLimit`: maximum accepted client-provided `limit`.
+- Client-provided `limit` is only used when `maxLimit` is set.
+- If `maxLimit` is set without `limit`, client-provided `limit` is required.
+- If no config is provided, the query must already have `.limit(...)`.

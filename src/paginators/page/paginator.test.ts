@@ -61,6 +61,21 @@ describe("paginateByPage", () => {
     expect(page.prevPage).toBeUndefined()
   })
 
+  test("returns empty items for a page beyond available data", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+      { id: 3, name: "c", score: 30, group: "one" },
+    ])
+
+    // 3 items with limit 2 = 2 pages; requesting page 5
+    const page = await paginateByPage(db.user.order({ id: "ASC" }), { limit: 2 }, { page: 5 })
+
+    expect(page.items).toEqual([])
+    expect(page).toMatchObject({ page: 5, limit: 2, offset: 8, prevPage: 4 })
+    expect(page.nextPage).toBeUndefined()
+  })
+
   test("clamps requested limit by config", async () => {
     await seedUsers([
       { id: 1, name: "a", score: 10, group: "one" },

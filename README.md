@@ -41,6 +41,11 @@ defineEventHandler(async (ctx) => {
 
 The page has `{ items, page, limit, offset, prevPage?, nextPage? }`.
 
+**No total count.**
+This library intentionally avoids `COUNT(*)` queries for performance.
+As a consequence, requesting a page beyond the last one returns an empty `items` array with the requested page number as-is — the library cannot distinguish "page too far" from "legitimately empty result" without a count.
+If you need `total` / `totalPages`, run a separate `query.count()` call.
+
 ## Cursor pagination
 
 ```ts

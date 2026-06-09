@@ -41,10 +41,13 @@ defineEventHandler(async (ctx) => {
 
 The page has `{ items, page, limit, offset, prevPage?, nextPage? }`.
 
-**No total count.**
-This library intentionally avoids `COUNT(*)` queries for performance.
-As a consequence, requesting a page beyond the last one returns an empty `items` array with the requested page number as-is — the library cannot distinguish "page too far" from "legitimately empty result" without a count.
-If you need `total` / `totalPages`, run a separate `query.count()` call.
+### No total count by default
+
+By default, this library does not run `COUNT(*)` queries, keeping pagination fast and lightweight.
+If a requested page is beyond the last page, the result contains an empty `items` array and keeps the requested page number unchanged.
+
+Set `total: true` to include `totalItems` and `totalPages` in the response.
+Pages beyond the last page are still left unchanged; to clamp them to the last available page, set `clampPage: true` together with `total: true`.
 
 ## Cursor pagination
 
@@ -113,3 +116,8 @@ const page = await paginateByCursor(
 - Client-provided `limit` is only used when `maxLimit` is set.
 - If `maxLimit` is set without `limit`, client-provided `limit` is required.
 - If no config is provided, the query must already have `.limit(...)`.
+
+### Page number pagination
+
+- `total`: run a `COUNT(*)` query and include `totalItems` / `totalPages` in the response.
+- `clampPage`: clamp pages beyond the last page to the last available page. Requires `total: true`.

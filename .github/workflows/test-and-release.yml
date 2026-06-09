@@ -44,7 +44,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: "24"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -58,7 +58,7 @@ jobs:
         run: bun run build
 
       - name: Test package
-        run: bun test
+        run: bun test && bun types
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost
 

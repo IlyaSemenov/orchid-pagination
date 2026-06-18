@@ -1,7 +1,7 @@
 {
   "name": "orchid-pagination",
   "type": "module",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "packageManager": "bun@1.3.14",
   "description": "Orchid ORM query pagination helpers",
   "author": "Ilya Semenov",

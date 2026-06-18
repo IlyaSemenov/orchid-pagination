@@ -1,5 +1,11 @@
 # orchid-pagination
 
+## 2.2.0
+
+### Minor Changes
+
+- 7405b8e: Auto-inject temporary field aliases in cursor pagination when ordering on non-selected fields.
+
 ## 2.1.1
 
 ### Patch Changes

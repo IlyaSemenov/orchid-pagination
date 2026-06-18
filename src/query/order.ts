@@ -1,10 +1,13 @@
-import type { ListQuery } from "../../types"
+import type { ListQuery } from "../types"
 
-type OrderField = [field: string, asc: boolean]
+export type OrderField = [field: string, asc: boolean]
 
-/** getQueryOrderFields returns ordered query fields as field and ascending-direction pairs. */
+/**
+ * getQueryOrderFields parses the query's ORDER BY into field and
+ * ascending-direction pairs. Returns an empty array when the query is unordered.
+ */
 export function getQueryOrderFields(query: ListQuery): OrderField[] {
-  const orderFields = query.q.order?.flatMap<[field: string, asc: boolean]>((orderItem) => {
+  return query.q.order?.flatMap<[field: string, asc: boolean]>((orderItem) => {
     if (typeof orderItem === "string") {
       return [[orderItem, true]]
     } else if (typeof orderItem === "object") {
@@ -18,9 +21,5 @@ export function getQueryOrderFields(query: ListQuery): OrderField[] {
     } else {
       throw new TypeError("Unsupported order type: " + orderItem)
     }
-  })
-  if (!orderFields?.length) {
-    throw new Error("Query must be ordered.")
-  }
-  return orderFields
+  }) ?? []
 }

@@ -16,8 +16,8 @@ describe("getQueryOrderFields", () => {
     ])
   })
 
-  test("throws on unordered query", () => {
-    expect(() => getQueryOrderFields(db.user.all())).toThrow("Query must be ordered.")
+  test("returns an empty array for an unordered query", () => {
+    expect(getQueryOrderFields(db.user.all())).toEqual([])
   })
 
   test("throws on unsupported order direction", () => {

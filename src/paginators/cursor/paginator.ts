@@ -1,8 +1,9 @@
 import { getLimit, type PaginationConfig } from "../../limit"
+import { getQueryOrderFields } from "../../query"
 import type { ListQuery, SortDir } from "../../types"
 
 import { createDirectedCursor, parseDirectedCursor } from "./cursor"
-import { getQueryOrderFields } from "./order"
+import { buildCursorWhere } from "./where"
 
 export interface CursorPaginationParams {
   /** Cursor returned as prevCursor or nextCursor by a previous call. */
@@ -26,6 +27,9 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: P
   const limit = getLimit(query, config, params)
 
   const orderFields = getQueryOrderFields(query)
+  if (!orderFields.length) {
+    throw new Error("Query must be ordered.")
+  }
 
   // poor man validation, TODO improve
   const parsedCursorMaybeValid = params?.cursor ? parseDirectedCursor(params.cursor) : undefined
@@ -43,18 +47,8 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: P
   }
 
   if (parsedCursor) {
-    // Prepare raw SQL.
-    // For example, for (amount ASC, id DESC) ordering, that would be:
-    // (amount, $id) >= ($amount, id)
-    const leftRawSql = orderFields.map(([field, asc], i) => asc ? query.ref(field).toSQL() : `$value${i}`).join(",")
-    const rightRawSql = orderFields.map(([field, asc], i) => !asc ? query.ref(field).toSQL() : `$value${i}`).join(",")
-    const rawSql = `(${leftRawSql}) > (${rightRawSql})`
-    const rawSqlValues = Object.fromEntries(
-      orderFields.map((_field, i) => [`value${i}`, parsedCursor.parts[i]]),
-    )
-    const sqlExpr = query.qb.sql({ raw: rawSql, values: rawSqlValues })
     // query.where doesn't like low-level RawSql objects, cast to any to silence
-    query = query.where(sqlExpr as any)
+    query = query.where(buildCursorWhere(query, orderFields, parsedCursor.parts) as any)
   }
 
   // Query 1 extra item to see if we can paginate farther in current direction.

@@ -9,6 +9,20 @@ describe("paginateByCursor", () => {
     await expect(paginateByCursor(db.user.all(), { limit: 2 })).rejects.toThrow("Query must be ordered.")
   })
 
+  test("throws when an order field is not selected", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+    ])
+
+    // score is ordered by but not selected, so it's missing from the result rows.
+    const query = db.user.select("id", "name").order({ score: "DESC", id: "DESC" })
+
+    await expect(paginateByCursor(query, { limit: 1 })).rejects.toThrow(
+      "Order field \"score\" is missing from the result — cursor pagination requires every order field to be selected.",
+    )
+  })
+
   test("paginates forward with single-field ascending order", async () => {
     await seedUsers([
       { id: 1, name: "a", score: 10, group: "one" },

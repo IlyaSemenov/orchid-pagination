@@ -72,8 +72,15 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: P
 
   function createItemCursor(item: any, reverse: boolean) {
     return createDirectedCursor(orderFields.map(([field]) => {
+      const value = getItemValue(item, field)
+      // A missing order field (undefined) means it wasn't selected; encoding it would
+      // produce a broken cursor that later fails deep inside the database. A legitimate
+      // NULL value is fine and gets encoded as usual.
+      if (value === undefined) {
+        throw new Error(`Order field "${field}" is missing from the result — cursor pagination requires every order field to be selected.`)
+      }
       // Can add custom serializer here if needed.
-      return String(getItemValue(item, field))
+      return String(value)
     }), reverse)
   }
 

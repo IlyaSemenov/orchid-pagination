@@ -1,5 +1,11 @@
 # orchid-pagination
 
+## 2.1.1
+
+### Patch Changes
+
+- fcf8798: Fail-fast on cursor pagination when an order field is missing in the result.
+
 ## 2.1.0
 
 ### Minor Changes

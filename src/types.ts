@@ -5,3 +5,6 @@ export type ListQuery = Query & {
 }
 
 export type SortDir = "ASC" | "DESC"
+
+/** A single result row returned by a list query, keyed by selected alias. */
+export type ResultRow = Record<string, unknown>

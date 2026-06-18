@@ -4,22 +4,111 @@ import { db, getIds, seedPosts, seedUsers } from "#testing"
 
 import { paginateByCursor } from "./paginator"
 
+function keysOf(item: unknown): string[] {
+  return Object.keys(item as object)
+}
+
 describe("paginateByCursor", () => {
   test("throws for unordered queries", async () => {
     await expect(paginateByCursor(db.user.all(), { limit: 2 })).rejects.toThrow("Query must be ordered.")
   })
 
-  test("throws when an order field is not selected", async () => {
+  test("auto-injects missing order fields and strips them from result", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+      { id: 3, name: "c", score: 30, group: "one" },
+    ])
+
+    // score is ordered by but not selected; the paginator should auto-inject it.
+    const query = () => db.user.select("id", "name").order({ score: "DESC", id: "DESC" })
+
+    const first = await paginateByCursor(query(), { limit: 1 })
+    expect(getIds(first.items)).toEqual([3])
+    // No temporary cursor columns leak into the result set.
+    expect(keysOf(first.items[0]).sort()).toEqual(["id", "name"])
+    expect(first.items[0]).not.toHaveProperty("__cursor_0")
+    expect(first.nextCursor).toBeTypeOf("string")
+
+    const second = await paginateByCursor(query(), { limit: 1 }, { cursor: first.nextCursor })
+    expect(getIds(second.items)).toEqual([2])
+    expect(keysOf(second.items[0]).sort()).toEqual(["id", "name"])
+    expect(second.prevCursor).toBeTypeOf("string")
+
+    // prevCursor should page back to the first item.
+    const back = await paginateByCursor(query(), { limit: 1 }, { cursor: second.prevCursor })
+    expect(getIds(back.items)).toEqual([3])
+  })
+
+  test("does not inject fields that are already selected", async () => {
     await seedUsers([
       { id: 1, name: "a", score: 10, group: "one" },
       { id: 2, name: "b", score: 20, group: "one" },
     ])
 
-    // score is ordered by but not selected, so it's missing from the result rows.
-    const query = db.user.select("id", "name").order({ score: "DESC", id: "DESC" })
+    // Both order fields are selected, so no __cursor_* columns should appear.
+    const query = db.user.select("id", "score").order({ score: "DESC", id: "DESC" })
 
-    await expect(paginateByCursor(query, { limit: 1 })).rejects.toThrow(
-      "Order field \"score\" is missing from the result — cursor pagination requires every order field to be selected.",
+    const page = await paginateByCursor(query, { limit: 1 })
+    expect(getIds(page.items)).toEqual([2])
+    expect(keysOf(page.items[0]).sort()).toEqual(["id", "score"])
+    expect(page.items[0]).not.toHaveProperty("__cursor_0")
+    expect(page.items[0]).not.toHaveProperty("__cursor_1")
+  })
+
+  test("does not inject when selecting all columns implicitly", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+    ])
+
+    // No .select() at all — all main-table columns are returned, including score.
+    const query = db.user.order({ score: "DESC", id: "DESC" })
+
+    const page = await paginateByCursor(query, { limit: 1 })
+    expect(getIds(page.items)).toEqual([2])
+    expect(page.items[0]).not.toHaveProperty("__cursor_0")
+  })
+
+  test("respects cursorAliasPrefix config", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+    ])
+
+    const query = () => db.user.select("id", "name").order({ score: "DESC", id: "DESC" })
+
+    const first = await paginateByCursor(query(), { limit: 1, cursorAliasPrefix: "_xc_" })
+    expect(keysOf(first.items[0]).sort()).toEqual(["id", "name"])
+    expect(first.items[0]).not.toHaveProperty("_xc_0")
+    expect(first.nextCursor).toBeTypeOf("string")
+
+    // Pagination still works end-to-end with the custom prefix.
+    const second = await paginateByCursor(
+      query(),
+      { limit: 1, cursorAliasPrefix: "_xc_" },
+      { cursor: first.nextCursor },
+    )
+    expect(getIds([...first.items, ...second.items])).toEqual([2, 1])
+  })
+
+  test("throws a clear error when ordering by a relation that is not selected or joined", async () => {
+    await seedUsers([
+      { id: 1, name: "Alice", score: 10, group: "one" },
+      { id: 2, name: "Bob", score: 20, group: "one" },
+    ])
+    await seedPosts([
+      { id: 1, authorId: 1, text: "Alice first" },
+      { id: 2, authorId: 2, text: "Bob first" },
+    ])
+
+    // author relation is NOT selected and NOT joined: throw a clear, actionable
+    // error rather than letting a cryptic `missing FROM-clause` surface from SQL.
+    const query = () =>
+      (db.post.select("id", "text") as any).order("author.name", { id: "DESC" }) as any
+
+    await expect(paginateByCursor(query(), { limit: 2 })).rejects.toThrow(
+      "Cannot order by \"author.name\" in cursor pagination: relation \"author\" is neither selected nor joined.",
     )
   })
 

@@ -30,7 +30,7 @@
   "scripts": {
     "build": "tsup",
     "lint": "eslint --fix .",
-    "prepare": "husky",
+    "prepare": "lefthook install",
     "prepublishOnly": "bun run build",
     "types": "tsgo"
   },
@@ -46,8 +46,6 @@
     "@types/node": "^22.10.1",
     "@typescript/native-preview": "^7.0.0-dev.20260605.1",
     "eslint": "^9.15.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^15.2.10",
     "orchid-orm": "1.68.5",
     "postgres": "^3.4.9",
     "tsup": "^8.3.5",

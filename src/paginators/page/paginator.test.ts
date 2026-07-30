@@ -2,7 +2,8 @@ import { describe, expect, expectTypeOf, test } from "bun:test"
 
 import { db, getIds, seedUsers } from "#testing"
 
-import { type PagePaginationPage, type PagePaginationPageWithTotal, paginateByPage } from "./paginator"
+import type { PagePaginationPage, PagePaginationPageWithTotal } from "./paginator"
+import { paginateByPage } from "./paginator"
 
 describe("paginateByPage", () => {
   test("returns the first page with a next page", async () => {

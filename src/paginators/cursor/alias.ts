@@ -1,4 +1,5 @@
-import { getQuerySelectedKeys, type OrderField } from "../../query"
+import type { OrderField } from "../../query"
+import { getQuerySelectedKeys } from "../../query"
 import type { ListQuery, ResultRow } from "../../types"
 
 /**

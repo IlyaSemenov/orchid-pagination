@@ -1,4 +1,5 @@
-import { getLimit, type PaginationConfig } from "../../limit"
+import type { PaginationConfig } from "../../limit"
+import { getLimit } from "../../limit"
 import { getQueryOrderFields } from "../../query"
 import type { ListQuery, ResultRow } from "../../types"
 
@@ -54,10 +55,10 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: C
 
   const queryOrderFields = reverse
     ? orderFields.map<typeof orderFields[number]>(([field, asc, nulls]) => [
-      field,
-      !asc,
-      nulls === "FIRST" ? "LAST" : "FIRST",
-    ])
+        field,
+        !asc,
+        nulls === "FIRST" ? "LAST" : "FIRST",
+      ])
     : orderFields
 
   if (reverse || queryOrderFields.some(([field]) => orderFieldNeedsNullRank(query, field))) {

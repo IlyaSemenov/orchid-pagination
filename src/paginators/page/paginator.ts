@@ -1,4 +1,5 @@
-import { getLimit, type PaginationConfig } from "../../limit"
+import type { PaginationConfig } from "../../limit"
+import { getLimit } from "../../limit"
 import type { ListQuery } from "../../types"
 
 export type PagePaginationConfig = PaginationConfig & {

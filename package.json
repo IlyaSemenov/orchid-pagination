@@ -6,10 +6,12 @@
   "description": "Orchid ORM query pagination helpers",
   "author": "Ilya Semenov",
   "license": "MIT",
+  "homepage": "https://github.com/IlyaSemenov/orchid-pagination#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/IlyaSemenov/orchid-pagination"
   },
+  "bugs": "https://github.com/IlyaSemenov/orchid-pagination/issues",
   "imports": {
     "#testing": "./testing/index.ts"
   },
@@ -18,7 +20,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "main": "dist/index.cjs",
   "types": "dist/index.d.ts",
@@ -27,6 +30,10 @@
     "dist",
     "src"
   ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "tsup",
     "lint": "eslint --fix .",

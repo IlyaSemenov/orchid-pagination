@@ -324,4 +324,25 @@ describe("paginateByCursor", () => {
     expect(getIds(page.items)).toEqual([1, 2])
     expect(page.limit).toBe(2)
   })
+
+  test("paginates by a nullable order field when all rows have a value", async () => {
+    // Cluster where every row has a non-null position: the (position, id) order
+    // is well-defined and cursors never carry a null position.
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one", position: 30 },
+      { id: 2, name: "b", score: 20, group: "one", position: 10 },
+      { id: 3, name: "c", score: 30, group: "one", position: 20 },
+      { id: 4, name: "d", score: 40, group: "one", position: 10 },
+    ])
+
+    const query = () => db.user.whereNot({ position: null }).order({ position: "ASC", id: "ASC" })
+
+    const first = await paginateByCursor(query(), { limit: 2 })
+    expect(getIds(first.items)).toEqual([2, 4])
+    expect(first.nextCursor).toBeTypeOf("string")
+
+    const second = await paginateByCursor(query(), { limit: 2 }, { cursor: first.nextCursor })
+    expect(getIds(second.items)).toEqual([3, 1])
+    expect(second.nextCursor).toBeUndefined()
+  })
 })

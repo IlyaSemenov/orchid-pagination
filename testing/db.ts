@@ -4,7 +4,7 @@ import { orchidORM } from "orchid-orm/postgres-js"
 
 const BaseTable = createBaseTable({ snakeCase: true })
 
-class UserTable extends BaseTable {
+export class UserTable extends BaseTable {
   override readonly table = "user"
 
   override columns = this.setColumns(t => ({
@@ -12,6 +12,7 @@ class UserTable extends BaseTable {
     name: t.varchar(),
     score: t.integer(),
     group: t.varchar(),
+    position: t.integer().nullable(),
   }))
 
   relations = {
@@ -22,7 +23,7 @@ class UserTable extends BaseTable {
   }
 }
 
-class PostTable extends BaseTable {
+export class PostTable extends BaseTable {
   override readonly table = "post"
 
   override columns = this.setColumns(t => ({
@@ -52,7 +53,7 @@ export function useTestDb() {
   beforeAll(async () => {
     await testTransaction.start(db)
     await db.$query`
-      create table "user" (id serial not null primary key, name varchar not null, score integer not null, "group" varchar not null);
+      create table "user" (id serial not null primary key, name varchar not null, score integer not null, "group" varchar not null, position integer);
       create table "post" (id serial not null primary key, author_id integer references "user"(id) not null, text varchar);
     `
   })

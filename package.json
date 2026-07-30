@@ -32,6 +32,7 @@
     "lint": "eslint --fix .",
     "prepare": "lefthook install",
     "prepublishOnly": "bun run build",
+    "test": "bun test",
     "types": "tsgo"
   },
   "peerDependencies": {

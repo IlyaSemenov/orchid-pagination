@@ -40,10 +40,20 @@ class PostTable extends BaseTable {
   }
 }
 
+class TaskTable extends BaseTable {
+  override readonly table = "task"
+
+  override columns = this.setColumns(t => ({
+    id: t.serial().primaryKey(),
+    dueAt: t.timestamp().nullable(),
+  }))
+}
+
 export const db = orchidORM(
   { databaseURL: import.meta.env.DATABASE_URL },
   {
     post: PostTable,
+    task: TaskTable,
     user: UserTable,
   },
 )
@@ -54,6 +64,7 @@ export function useTestDb() {
     await db.$query`
       create table "user" (id serial not null primary key, name varchar not null, score integer, "group" varchar not null);
       create table "post" (id serial not null primary key, author_id integer references "user"(id) not null, text varchar);
+      create table "task" (id serial not null primary key, due_at timestamp);
     `
   })
 

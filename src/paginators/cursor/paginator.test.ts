@@ -216,6 +216,68 @@ describe("paginateByCursor", () => {
     expect(getIds(backToFirst.items)).toEqual([2, 1])
   })
 
+  test("keeps cursor values hidden by a runtime map", async () => {
+    const overdue = new Date("2020-01-01T00:00:00.000Z")
+    await db.task.insertMany([
+      { id: 1, dueAt: overdue },
+      { id: 2, dueAt: new Date("2030-01-01T00:00:00.000Z") },
+      { id: 3, dueAt: null },
+      { id: 4, dueAt: overdue },
+      { id: 5, dueAt: null },
+    ])
+
+    const query = () => db.task
+      .select("id", "dueAt")
+      .map(({ dueAt, ...task }) => ({
+        ...task,
+        meta: { dueAt },
+      }))
+      .order({ dueAt: "ASC", id: "DESC" })
+
+    const first = await paginateByCursor(query(), { limit: 2 })
+    const second = await paginateByCursor(query(), { limit: 2 }, { cursor: first.nextCursor })
+    const third = await paginateByCursor(query(), { limit: 2 }, { cursor: second.nextCursor })
+    const back = await paginateByCursor(query(), { limit: 2 }, { cursor: third.prevCursor })
+    const items = [...first.items, ...second.items, ...third.items]
+
+    expect(first.nextCursor).toBeTypeOf("string")
+    expect(getIds(items)).toEqual([4, 1, 2, 5, 3])
+    expect(new Set(getIds(items)).size).toBe(items.length)
+    expect(second.items[1]?.meta.dueAt).toBeNull()
+    expect(getIds(back.items)).toEqual(getIds(second.items))
+    for (const item of [...items, ...back.items]) {
+      expect(item).not.toHaveProperty("dueAt")
+      expect(Object.keys(item).some(key => key.startsWith("__cursor_"))).toBeFalse()
+    }
+  })
+
+  test("hides auto-injected cursor columns before a runtime map", async () => {
+    await db.task.insertMany([
+      { id: 1, dueAt: new Date("2020-01-01T00:00:00.000Z") },
+      { id: 2, dueAt: new Date("2030-01-01T00:00:00.000Z") },
+      { id: 3, dueAt: null },
+    ])
+
+    const query = () => db.task
+      .select("id")
+      .map(task => ({
+        id: task.id,
+        raw: { ...task },
+      }))
+      .order({ dueAt: "ASC", id: "DESC" })
+
+    const first = await paginateByCursor(query(), { limit: 1 })
+    const second = await paginateByCursor(query(), { limit: 1 }, { cursor: first.nextCursor })
+    const third = await paginateByCursor(query(), { limit: 1 }, { cursor: second.nextCursor })
+    const items = [...first.items, ...second.items, ...third.items]
+
+    expect(getIds(items)).toEqual([1, 2, 3])
+    for (const item of items) {
+      expect(Object.keys(item).sort()).toEqual(["id", "raw"])
+      expect(Object.keys(item.raw)).toEqual(["id"])
+    }
+  })
+
   test("paginates from nulls-first values to non-null values", async () => {
     await seedUsers([
       { id: 1, name: "a", score: 10, group: "one" },

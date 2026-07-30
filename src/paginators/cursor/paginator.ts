@@ -1,7 +1,7 @@
 import type { PaginationConfig } from "../../limit"
 import { getLimit } from "../../limit"
 import { getQueryOrderFields } from "../../query"
-import type { ListQuery, ResultRow } from "../../types"
+import type { ListQuery } from "../../types"
 
 import { prepareCursorColumns } from "./alias"
 import { createDirectedCursor, parseDirectedCursor } from "./cursor"
@@ -70,9 +70,9 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: C
     query = query.where(buildCursorWhere(query, orderFields, parsedCursor.parts, reverse) as never)
   }
 
-  // Auto-inject order fields that are missing from the result rows as hidden
-  // cursor columns, so we can build cursors from the rows; they are stripped
-  // from the returned items after cursors are computed.
+  // Auto-inject order fields that are missing from the SQL selection as hidden
+  // cursor columns. Their values are captured and the aliases are removed before
+  // user-defined runtime maps run.
   const prefix = config?.cursorAliasPrefix ?? "__cursor_"
   const cursorColumns = prepareCursorColumns(query, orderFields, prefix)
   query = cursorColumns.apply(query) as T
@@ -83,23 +83,27 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: C
     throw new TypeError("Query must return an array.")
   }
   const hasContinuation = items.length > limit
+  // CursorColumns stores values in an array parallel to `items`. Mirror both
+  // mutations so item indices still address the matching cursor-value tuple.
   if (hasContinuation) {
     items.splice(limit)
+    cursorColumns.truncate(limit)
   }
   if (reverse) {
     items.reverse()
+    cursorColumns.reverse()
   }
 
-  function createItemCursor(item: ResultRow, reverse: boolean) {
+  function createItemCursor(itemIndex: number, reverse: boolean) {
     return createDirectedCursor(orderFields.map(([field], i) => {
-      const value = cursorColumns.valueOf(item, i)
-      // After auto-injection every order field should be present. A missing value
-      // (undefined) means it leaked through; a legitimate NULL is fine and gets
+      const value = cursorColumns.valueAt(itemIndex, i)
+      // Every order field is captured before runtime transforms. A missing value
+      // (undefined) means preparation failed; a legitimate NULL is fine and gets
       // encoded as usual.
       if (value === undefined) {
         throw new Error(
-          `Order field "${field}" is missing from the result row. `
-          + "This should not happen after cursor field auto-injection; "
+          `Order field "${field}" was not captured from the result row. `
+          + "This should not happen after cursor field preparation; "
           + "please report this as a bug.",
         )
       }
@@ -113,18 +117,15 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: C
   // - for forward pagination, prev page exists always
   // - for reverse pagination, prev page exists if we have a continuation
   const prevCursor = (parsedCursor && (parsedCursor.reverse === false || hasContinuation))
-    ? createItemCursor(items[0], true)
+    ? createItemCursor(0, true)
     : undefined
 
   // Next cursor:
   // - for reverse pagination, next page exists always
   // - for initial or forward pagination, next page exists if we have a continuation
   const nextCursor = (parsedCursor?.reverse === true || hasContinuation)
-    ? createItemCursor(items.at(-1), false)
+    ? createItemCursor(items.length - 1, false)
     : undefined
-
-  // Strip auto-injected cursor columns from the returned items.
-  cursorColumns.strip(items)
 
   return { items, limit, prevCursor, nextCursor }
 }

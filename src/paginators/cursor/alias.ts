@@ -3,26 +3,32 @@ import { getQuerySelectedKeys } from "../../query"
 import type { ListQuery, ResultRow } from "../../types"
 
 /**
- * CursorColumns manages the hidden columns used to read order-field values back
- * from result rows.
+ * Keeps cursor data separate from the public result shape.
  *
- * Order fields that aren't present in the query's SELECT are auto-injected as
- * hidden columns (`__cursor_0`, `__cursor_1`, ...) so cursors can be built from
- * the result rows, then stripped from the returned items.
+ * The processing order is significant:
+ * 1. SQL selects every order value, injecting `__cursor_N` aliases when needed.
+ * 2. A prepended Orchid transform copies those values to a parallel array and
+ *    removes injected aliases from the raw rows.
+ * 3. User `.map()` transforms run on clean rows and may reshape them freely.
+ *
+ * Orchid record maps preserve row count and order, so the parallel array stays
+ * aligned. Whole-result `.transform()` queries are excluded by `ListQuery`.
  */
 export interface CursorColumns {
-  /** Adds the injected cursor columns to the query's SELECT. Returns a new query. */
+  /** Adds cursor columns and captures their values before runtime transforms. Returns a new query. */
   apply(query: ListQuery): ListQuery
-  /** Reads the i-th order field's value from a result row, via its injected alias or by path. */
-  valueOf(item: ResultRow, fieldIndex: number): unknown
-  /** Removes the injected cursor columns from result rows in place. */
-  strip(items: ResultRow[]): void
+  /** Reads the i-th order field's captured value for a result row. */
+  valueAt(rowIndex: number, fieldIndex: number): unknown
+  /** Keeps captured values aligned with a truncated result. */
+  truncate(length: number): void
+  /** Keeps captured values aligned with a reversed result. */
+  reverse(): void
 }
 
 /**
  * prepareCursorColumns decides, for each order field, whether it is already
  * present in the result rows or must be auto-injected as a hidden column, and
- * returns a {@link CursorColumns} helper to apply, read and strip those columns.
+ * returns a {@link CursorColumns} helper to apply, capture and strip those columns.
  *
  * Only top-level main-table columns are auto-injected; relation paths (e.g.
  * `author.name`) require the relation to already be selected or joined, and
@@ -47,7 +53,13 @@ export function prepareCursorColumns(query: ListQuery, orderFields: OrderField[]
       case "inject": {
         const alias = `${prefix}${cursorIdx++}`
         sources.push({ field, alias })
-        selectObj[alias] = query.ref(field)
+        // Orchid's RefExpression retains the query that created it. If that query
+        // still has a `.map()`, selecting the ref as an alias makes Orchid apply
+        // the record map to the scalar alias value in its batch parser. The ref
+        // needs SQL metadata from the query, but must not inherit its transforms.
+        const sourceQuery = query.clone()
+        sourceQuery.q.transform = undefined
+        selectObj[alias] = sourceQuery.ref(field)
         break
       }
       case "error": {
@@ -61,26 +73,45 @@ export function prepareCursorColumns(query: ListQuery, orderFields: OrderField[]
   }
 
   const injectedAliases = sources.map(s => s.alias).filter((a): a is string => a !== undefined)
+  let capturedValues: unknown[][] = []
 
   return {
     apply(query) {
       // selectObj holds ref() expressions keyed by alias; its Record type doesn't
       // line up with select()'s SelectAsArg, so cast the argument.
-      return injectedAliases.length ? query.select(selectObj as never) : query
+      // Both branches return a clone because q.transform is assigned below.
+      const applied = injectedAliases.length ? query.select(selectObj as never) : query.clone()
+      // Orchid has no public API for prepending a transform.
+      applied.q.transform = [
+        (data) => {
+          if (Array.isArray(data)) {
+            capturedValues = data.map((item) => {
+              const row = item as ResultRow
+              const values = sources.map((source) => {
+                return source.alias !== undefined
+                  ? row[source.alias]
+                  : getItemValue(row, source.field)
+              })
+              for (const alias of injectedAliases) {
+                delete row[alias]
+              }
+              return values
+            })
+          }
+          return data
+        },
+        ...(applied.q.transform ?? []),
+      ]
+      return applied
     },
-    valueOf(item, fieldIndex) {
-      const source = sources[fieldIndex]!
-      return source.alias !== undefined ? item[source.alias] : getItemValue(item, source.field)
+    valueAt(rowIndex, fieldIndex) {
+      return capturedValues[rowIndex]?.[fieldIndex]
     },
-    strip(items) {
-      if (!injectedAliases.length) {
-        return
-      }
-      for (const item of items) {
-        for (const alias of injectedAliases) {
-          delete item[alias]
-        }
-      }
+    truncate(length) {
+      capturedValues.splice(length)
+    },
+    reverse() {
+      capturedValues.reverse()
     },
   }
 }

@@ -1,5 +1,12 @@
 # orchid-pagination
 
+## 2.3.0
+
+### Minor Changes
+
+- 146671b: Support nullable fields and explicit null ordering in cursor pagination.
+  Cursor payloads now use JSON encoding, so cursors created by earlier versions are not accepted.
+
 ## 2.2.0
 
 ### Minor Changes

@@ -83,6 +83,51 @@ Cursor queries must be ordered.
 Include a deterministic tie-breaker, usually `id`.
 Treat cursors as opaque strings and pass them back unchanged.
 
+### Null values
+
+Cursor pagination supports nullable order fields and PostgreSQL's `NULLS FIRST` and `NULLS LAST` behavior.
+PostgreSQL uses `NULLS LAST` for `ASC` and `NULLS FIRST` for `DESC` by default, so this query orders unfinished items last:
+
+```ts
+const page = await paginateByCursor(
+  db.task.order({ dueAt: "ASC", id: "DESC" }),
+  { limit: 10 },
+)
+```
+
+Orchid's explicit `ASC NULLS FIRST` and `DESC NULLS LAST` directions are supported as well.
+Nullable database columns must be declared with `.nullable()` in the Orchid schema.
+
+### Indexes
+
+For `ORDER BY name ASC, id DESC`, use an index with the same fields and directions:
+
+```sql
+CREATE INDEX user_name_id_cursor_idx
+ON "user" (name ASC, id DESC);
+```
+
+Add a null marker before a nullable order field:
+
+```sql
+CREATE INDEX task_due_at_id_cursor_idx
+ON task ((due_at IS NULL) ASC, due_at ASC, id DESC);
+```
+
+Use `ASC` for the null marker with `NULLS LAST` and `DESC` with `NULLS FIRST`.
+PostgreSQL can use the same index for backward pagination by scanning it in reverse.
+PostgreSQL can seek directly to the cursor for `ASC NULLS LAST` and `DESC NULLS FIRST`.
+With `ASC NULLS FIRST` or `DESC NULLS LAST`, it uses only the null marker to narrow the scan, so check deep pages with `EXPLAIN`.
+
+When the query always filters a column by equality, put that column before the order fields:
+
+```sql
+CREATE INDEX task_account_due_at_id_cursor_idx
+ON task (account_id, (due_at IS NULL) ASC, due_at ASC, id DESC);
+```
+
+Indexes for relation or computed aliases depend on the underlying SQL and should be checked with `EXPLAIN`.
+
 ### Aliases and relations
 
 You can order by selected aliases or by relation paths:
@@ -97,6 +142,8 @@ const page = await paginateByCursor(
   { limit: 10 },
 )
 ```
+
+Aliases of raw SQL expressions are not supported because SELECT output aliases are not available in the cursor `WHERE` condition.
 
 ```ts
 const page = await paginateByCursor(

@@ -1,9 +1,10 @@
 import { getLimit, type PaginationConfig } from "../../limit"
 import { getQueryOrderFields } from "../../query"
-import type { ListQuery, ResultRow, SortDir } from "../../types"
+import type { ListQuery, ResultRow } from "../../types"
 
 import { prepareCursorColumns } from "./alias"
 import { createDirectedCursor, parseDirectedCursor } from "./cursor"
+import { applyCursorOrder, orderFieldNeedsNullRank } from "./order"
 import { buildCursorWhere } from "./where"
 
 export interface CursorPaginationConfig extends PaginationConfig {
@@ -47,22 +48,25 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: C
 
   // poor man validation, TODO improve
   const parsedCursorMaybeValid = params?.cursor ? parseDirectedCursor(params.cursor) : undefined
-  const parsedCursor = parsedCursorMaybeValid && parsedCursorMaybeValid.parts.length >= orderFields.length ? parsedCursorMaybeValid : undefined
+  const parsedCursor = parsedCursorMaybeValid?.parts.length === orderFields.length ? parsedCursorMaybeValid : undefined
 
   const reverse = parsedCursor?.reverse ?? false
 
-  if (reverse) {
-    // Reverse parsed order fields + reverse query ordering.
-    orderFields.forEach((of) => {
-      of[1] = !of[1]
-    })
-    const orderArg = Object.fromEntries(orderFields.map<[string, SortDir]>(([field, asc]) => [field, asc ? "ASC" : "DESC"]))
-    query = query.clear("order").order(orderArg as never)
+  const queryOrderFields = reverse
+    ? orderFields.map<typeof orderFields[number]>(([field, asc, nulls]) => [
+      field,
+      !asc,
+      nulls === "FIRST" ? "LAST" : "FIRST",
+    ])
+    : orderFields
+
+  if (reverse || queryOrderFields.some(([field]) => orderFieldNeedsNullRank(query, field))) {
+    query = applyCursorOrder(query, queryOrderFields) as T
   }
 
   if (parsedCursor) {
     // query.where doesn't like low-level RawSql objects, cast to silence
-    query = query.where(buildCursorWhere(query, orderFields, parsedCursor.parts) as never)
+    query = query.where(buildCursorWhere(query, orderFields, parsedCursor.parts, reverse) as never)
   }
 
   // Auto-inject order fields that are missing from the result rows as hidden
@@ -99,7 +103,7 @@ export async function paginateByCursor<T extends ListQuery>(query: T, config?: C
         )
       }
       // Can add custom serializer here if needed.
-      return String(value)
+      return value === null ? null : String(value)
     }), reverse)
   }
 

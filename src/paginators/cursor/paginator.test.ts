@@ -13,6 +13,23 @@ describe("paginateByCursor", () => {
     await expect(paginateByCursor(db.user.all(), { limit: 2 })).rejects.toThrow("Query must be ordered.")
   })
 
+  test("treats an invalid cursor as the first page", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+    ])
+
+    const page = await paginateByCursor(
+      db.user.order({ id: "ASC" }),
+      { limit: 1 },
+      { cursor: "not-json" },
+    )
+
+    expect(getIds(page.items)).toEqual([1])
+    expect(page.prevCursor).toBeUndefined()
+    expect(page.nextCursor).toBeTypeOf("string")
+  })
+
   test("auto-injects missing order fields and strips them from result", async () => {
     await seedUsers([
       { id: 1, name: "a", score: 10, group: "one" },
@@ -175,6 +192,66 @@ describe("paginateByCursor", () => {
     expect(getIds(second.items)).toEqual([3])
   })
 
+  test("paginates forward and backward across a nulls-last boundary", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 10, group: "one" },
+      { id: 3, name: "c", score: 20, group: "one" },
+      { id: 4, name: "d", score: null, group: "one" },
+      { id: 5, name: "e", score: null, group: "one" },
+    ])
+
+    const query = () => db.user.order({ score: "ASC", id: "DESC" })
+
+    const first = await paginateByCursor(query(), { limit: 2 })
+    const second = await paginateByCursor(query(), { limit: 2 }, { cursor: first.nextCursor })
+    const third = await paginateByCursor(query(), { limit: 2 }, { cursor: second.nextCursor })
+    const backToSecond = await paginateByCursor(query(), { limit: 2 }, { cursor: third.prevCursor })
+    const backToFirst = await paginateByCursor(query(), { limit: 2 }, { cursor: backToSecond.prevCursor })
+
+    expect(getIds(first.items)).toEqual([2, 1])
+    expect(getIds(second.items)).toEqual([3, 5])
+    expect(getIds(third.items)).toEqual([4])
+    expect(getIds(backToSecond.items)).toEqual([3, 5])
+    expect(getIds(backToFirst.items)).toEqual([2, 1])
+  })
+
+  test("paginates from nulls-first values to non-null values", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+      { id: 3, name: "c", score: null, group: "one" },
+      { id: 4, name: "d", score: null, group: "one" },
+    ])
+
+    const query = () => db.user.order({ score: "DESC", id: "ASC" })
+
+    const first = await paginateByCursor(query(), { limit: 2 })
+    const second = await paginateByCursor(query(), { limit: 2 }, { cursor: first.nextCursor })
+
+    expect(getIds(first.items)).toEqual([3, 4])
+    expect(getIds(second.items)).toEqual([2, 1])
+  })
+
+  test("preserves explicit null ordering when paginating backward", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+      { id: 3, name: "c", score: null, group: "one" },
+      { id: 4, name: "d", score: null, group: "one" },
+    ])
+
+    const query = () => db.user.order({ score: "ASC NULLS FIRST", id: "DESC" })
+
+    const first = await paginateByCursor(query(), { limit: 2 })
+    const second = await paginateByCursor(query(), { limit: 2 }, { cursor: first.nextCursor })
+    const back = await paginateByCursor(query(), { limit: 2 }, { cursor: second.prevCursor })
+
+    expect(getIds(first.items)).toEqual([4, 3])
+    expect(getIds(second.items)).toEqual([1, 2])
+    expect(getIds(back.items)).toEqual([4, 3])
+  })
+
   test("paginates forward ordered by a relation column", async () => {
     await seedUsers([
       { id: 1, name: "Alice", score: 10, group: "one" },
@@ -229,6 +306,24 @@ describe("paginateByCursor", () => {
     expect(getIds(first.items)).toEqual([2, 1])
     expect(first.nextCursor).toBeTypeOf("string")
     expect(getIds(second.items)).toEqual([3, 5])
+  })
+
+  test("paginates forward ordered by a selected-column alias", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+      { id: 3, name: "c", score: null, group: "one" },
+    ])
+
+    const query = () => db.user
+      .select("id", { s: "score" })
+      .order({ s: "ASC", id: "DESC" })
+
+    const first = await paginateByCursor(query(), { limit: 2 })
+    const second = await paginateByCursor(query(), { limit: 2 }, { cursor: first.nextCursor })
+
+    expect(getIds(first.items)).toEqual([1, 2])
+    expect(getIds(second.items)).toEqual([3])
   })
 
   test("paginates forward ordered by a relation aggregate alias", async () => {

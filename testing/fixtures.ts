@@ -3,7 +3,7 @@ import { db } from "./db"
 type UserSeed = {
   id: number
   name: string
-  score: number
+  score: number | null
   group: string
 }
 

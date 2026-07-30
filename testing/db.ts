@@ -10,7 +10,7 @@ class UserTable extends BaseTable {
   override columns = this.setColumns(t => ({
     id: t.serial().primaryKey(),
     name: t.varchar(),
-    score: t.integer(),
+    score: t.integer().nullable(),
     group: t.varchar(),
   }))
 
@@ -28,7 +28,7 @@ class PostTable extends BaseTable {
   override columns = this.setColumns(t => ({
     id: t.serial().primaryKey(),
     authorId: t.integer().foreignKey(() => UserTable, "id"),
-    text: t.varchar(),
+    text: t.varchar().nullable(),
   }))
 
   relations = {
@@ -52,7 +52,7 @@ export function useTestDb() {
   beforeAll(async () => {
     await testTransaction.start(db)
     await db.$query`
-      create table "user" (id serial not null primary key, name varchar not null, score integer not null, "group" varchar not null);
+      create table "user" (id serial not null primary key, name varchar not null, score integer, "group" varchar not null);
       create table "post" (id serial not null primary key, author_id integer references "user"(id) not null, text varchar);
     `
   })

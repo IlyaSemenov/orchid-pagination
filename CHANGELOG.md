@@ -1,5 +1,11 @@
 # orchid-pagination
 
+## 2.3.1
+
+### Patch Changes
+
+- 43069ff: Fix cursor pagination for Orchid queries whose `.map()` transforms rename, nest, or omit order fields.
+
 ## 2.3.0
 
 ### Minor Changes

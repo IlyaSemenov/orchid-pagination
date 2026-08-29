@@ -2,11 +2,35 @@ import { describe, expect, test } from "bun:test"
 
 import { db, getIds, seedPosts, seedUsers } from "#testing"
 
-import { paginateByCursor } from "./paginator"
+import { paginateByCursor, prepareCursorPagination } from "./paginator"
 
 function keysOf(item: unknown): string[] {
   return Object.keys(item as object)
 }
+
+describe("prepareCursorPagination", () => {
+  test("executes a second lazy page and finalizes it through an Orchid transform", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+      { id: 3, name: "c", score: 30, group: "one" },
+    ])
+
+    const firstPrepared = prepareCursorPagination(db.user.order({ id: "ASC" }), { limit: 2 })
+    const first = firstPrepared.finalize(await firstPrepared.query)
+    const secondPrepared = prepareCursorPagination(
+      db.user.order({ id: "ASC" }),
+      { limit: 2 },
+      { cursor: first.nextCursor },
+    )
+    const second = await secondPrepared.query.transform(secondPrepared.finalize)
+
+    expect(getIds(first.items)).toEqual([1, 2])
+    expect(getIds(second.items)).toEqual([3])
+    expect(second.prevCursor).toBeTypeOf("string")
+    expect(second.nextCursor).toBeUndefined()
+  })
+})
 
 describe("paginateByCursor", () => {
   test("paginates uuid, date/time, and numeric order columns", async () => {

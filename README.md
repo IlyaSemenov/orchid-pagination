@@ -156,6 +156,31 @@ const page = await paginateByCursor(
 )
 ```
 
+### Lazy cursor pagination
+
+Use `prepareCursorPagination` to prepare the query without executing it and finalize the fetched rows later:
+
+```ts
+import { prepareCursorPagination } from "orchid-pagination"
+
+const { query, finalize } = prepareCursorPagination(
+  db.user.where(conditions).order({ name: "ASC", id: "DESC" }),
+  { limit: 10, maxLimit: 1000 },
+  params,
+)
+
+const page = finalize(await query)
+```
+
+The returned query already includes the cursor condition, cursor order, hidden cursor fields, and the extra-row limit.
+Execute it without further changes that can alter its selected rows or their order, then pass its result to `finalize` exactly once.
+
+To keep finalization inside an Orchid query pipeline, compose it with `transform`:
+
+```ts
+const page = await query.transform(finalize)
+```
+
 ## Pagination config
 
 - `limit`: default page size.

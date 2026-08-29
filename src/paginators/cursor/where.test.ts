@@ -24,7 +24,7 @@ describe("buildCursorWhere", () => {
   test("compares as a single row-value for an all-ascending order", () => {
     const { where, values } = sqlOf(db.user.order({ score: "ASC", id: "ASC" }), ["10", "5"])
 
-    expect(where).toBe(`WHERE ((("user"."score" IS NULL),"user"."score","user"."id") > ($1,$2,$3))`)
+    expect(where).toBe(`WHERE ((("user"."score" IS NULL),"user"."score","user"."id") > ($1,$2::text::int4,$3::text::int4))`)
     expect(values).toEqual([false, "10", "5"])
   })
 
@@ -32,8 +32,8 @@ describe("buildCursorWhere", () => {
     const { where, values } = sqlOf(db.user.order({ score: "ASC", id: "DESC" }), ["10", "5"])
 
     expect(where).toBe(
-      `WHERE ((("user"."score" IS NULL),"user"."score") >= ($1,$2) `
-      + `AND CASE WHEN (("user"."score" IS NULL),"user"."score",$3) > ($4,$5,"user"."id") `
+      `WHERE ((("user"."score" IS NULL),"user"."score") >= ($1,$2::text::int4) `
+      + `AND CASE WHEN (("user"."score" IS NULL),"user"."score",$3::text::int4) > ($4,$5::text::int4,"user"."id") `
       + `THEN true ELSE false END)`,
     )
     expect(values).toEqual([false, "10", "5", false, "10"])
@@ -42,7 +42,7 @@ describe("buildCursorWhere", () => {
   test("does not add a null rank for a non-nullable field", () => {
     const { where, values } = sqlOf(db.user.order({ id: "DESC" }), ["7"])
 
-    expect(where).toBe(`WHERE (("user"."id") < ($1))`)
+    expect(where).toBe(`WHERE (("user"."id") < ($1::text::int4))`)
     expect(values).toEqual(["7"])
   })
 
@@ -51,7 +51,7 @@ describe("buildCursorWhere", () => {
 
     expect(where).toBe(
       `WHERE ((("user"."score" IS NULL)) >= ($1) `
-      + `AND CASE WHEN (("user"."score" IS NULL),$2) > ($3,"user"."id") `
+      + `AND CASE WHEN (("user"."score" IS NULL),$2::text::int4) > ($3,"user"."id") `
       + `THEN true ELSE false END)`,
     )
     expect(values).toEqual([true, "5", true])
@@ -63,13 +63,13 @@ describe("buildCursorWhere", () => {
 
     expect(first.where).toBe(
       `WHERE ((("user"."score" IS NULL)) <= ($1) `
-      + `AND CASE WHEN (("user"."score" IS NULL),$2) < ($3,"user"."score") `
+      + `AND CASE WHEN (("user"."score" IS NULL),$2::text::int4) < ($3,"user"."score") `
       + `THEN true ELSE false END)`,
     )
     expect(first.values).toEqual([false, "10", false])
     expect(last.where).toBe(
       `WHERE ((("user"."score" IS NULL)) >= ($1) `
-      + `AND CASE WHEN (("user"."score" IS NULL),$2) > ($3,"user"."score") `
+      + `AND CASE WHEN (("user"."score" IS NULL),$2::text::int4) > ($3,"user"."score") `
       + `THEN true ELSE false END)`,
     )
     expect(last.values).toEqual([false, "10", false])
@@ -79,8 +79,8 @@ describe("buildCursorWhere", () => {
     const { where, values } = sqlOf(db.user.order({ score: "ASC", id: "DESC" }), ["10", "5"], true)
 
     expect(where).toBe(
-      `WHERE ((("user"."score" IS NULL),"user"."score") <= ($1,$2) `
-      + `AND CASE WHEN (("user"."score" IS NULL),"user"."score",$3) < ($4,$5,"user"."id") `
+      `WHERE ((("user"."score" IS NULL),"user"."score") <= ($1,$2::text::int4) `
+      + `AND CASE WHEN (("user"."score" IS NULL),"user"."score",$3::text::int4) < ($4,$5::text::int4,"user"."id") `
       + `THEN true ELSE false END)`,
     )
     expect(values).toEqual([false, "10", "5", false, "10"])

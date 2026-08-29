@@ -53,7 +53,7 @@ describe("applyCursorOrder", () => {
       .order({ up: "ASC", id: "DESC" })
 
     expect(() => applyCursorOrder(query, getQueryOrderFields(query))).toThrow(
-      `Cannot order by selected expression alias "up" in cursor pagination because it is not available in WHERE.`,
+      `Cannot reference selected expression alias "up" outside SELECT.`,
     )
   })
 
@@ -65,7 +65,7 @@ describe("applyCursorOrder", () => {
       .order({ score: "ASC", id: "DESC" })
 
     expect(() => applyCursorOrder(query, getQueryOrderFields(query))).toThrow(
-      `Cannot order by selected expression alias "score" in cursor pagination because it is not available in WHERE.`,
+      `Cannot reference selected expression alias "score" outside SELECT.`,
     )
   })
 })

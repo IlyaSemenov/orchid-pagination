@@ -33,6 +33,36 @@ describe("prepareCursorPagination", () => {
 })
 
 describe("paginateByCursor", () => {
+  test("does not shift timestamp without time zone cursor bindings", async () => {
+    const originalTimeZone = process.env.TZ
+
+    try {
+      await db.$query`
+        INSERT INTO cursor_type (id, uuid, "timestamp", timestamptz, date, numeric, integer)
+        VALUES
+          (1, '00000000-0000-0000-0000-000000000001', TIMESTAMP '2020-01-01 00:00:00', TIMESTAMPTZ '2020-01-01 00:00:00+00', DATE '2020-01-01', 1, 1),
+          (2, '00000000-0000-0000-0000-000000000002', TIMESTAMP '2020-01-01 01:00:00', TIMESTAMPTZ '2020-01-02 00:00:00+00', DATE '2020-01-02', 2, 2)
+      `
+
+      for (const timeZone of ["America/New_York", "UTC", "Asia/Bangkok"]) {
+        process.env.TZ = timeZone
+
+        const query = () => db.cursorType.order({ timestamp: "ASC", id: "ASC" })
+        const first = await paginateByCursor(query(), { limit: 1 })
+        const second = await paginateByCursor(query(), { limit: 1 }, { cursor: first.nextCursor })
+
+        expect(getIds(first.items)).toEqual([1])
+        expect(getIds(second.items)).toEqual([2])
+      }
+    } finally {
+      if (originalTimeZone === undefined) {
+        delete process.env.TZ
+      } else {
+        process.env.TZ = originalTimeZone
+      }
+    }
+  })
+
   test("paginates uuid, date/time, and numeric order columns", async () => {
     await db.cursorType.insertMany([
       {

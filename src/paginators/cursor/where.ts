@@ -1,8 +1,9 @@
 import type { OrderField } from "../../query"
+import { queryFieldBindingToSQL, queryFieldRef, queryFieldToSQL } from "../../query"
 import type { ListQuery } from "../../types"
 
 import type { CursorPart } from "./cursor"
-import { orderFieldNeedsNullRank, orderFieldToSQL } from "./order"
+import { orderFieldNeedsNullRank } from "./order"
 
 /**
  * buildCursorWhere builds the row-value seek condition that keeps only rows
@@ -21,7 +22,7 @@ export function buildCursorWhere(query: ListQuery, orderFields: OrderField[], pa
   const rawSqlValues: Record<string, unknown> = {}
 
   orderFields.forEach(([field, asc, nulls], i) => {
-    const columnSql = orderFieldToSQL(query, field)
+    const columnSql = queryFieldToSQL(query, field)
     const part = parts[i]
 
     if (orderFieldNeedsNullRank(query, field) || part === null) {
@@ -36,7 +37,10 @@ export function buildCursorWhere(query: ListQuery, orderFields: OrderField[], pa
 
     if (part !== null) {
       const valueKey = `value${i}`
-      components.push([columnSql, `$${valueKey}`, asc])
+      // Keep postgres-js from applying the serializer inferred for the target
+      // column before Bind; PostgreSQL casts the original cursor text instead.
+      const valueSql = queryFieldBindingToSQL(queryFieldRef(query, field), `$${valueKey}`)
+      components.push([columnSql, valueSql, asc])
       rawSqlValues[valueKey] = part
     }
   })

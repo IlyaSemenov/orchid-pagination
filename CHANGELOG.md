@@ -1,5 +1,11 @@
 # orchid-pagination
 
+## 2.4.2
+
+### Patch Changes
+
+- 115f950: Fix cursor pagination by `timestamp without time zone` columns in non-UTC time zones so adjacent pages do not repeat or skip rows.
+
 ## 2.4.1
 
 ### Patch Changes

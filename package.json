@@ -26,9 +26,9 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.cts",
   "files": [
-    "!src/**/*.test.*",
     "dist",
-    "src"
+    "src",
+    "!src/**/*.test.*"
   ],
   "publishConfig": {
     "access": "public",

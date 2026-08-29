@@ -1,5 +1,15 @@
 # orchid-pagination
 
+## 2.4.0
+
+### Minor Changes
+
+- dc455bc: Add `prepareCursorPagination` for executing cursor pagination queries lazily and finalizing their results separately.
+
+### Patch Changes
+
+- befc660: Support cursor pagination by selected scalar relation aliases with Orchid ORM 1.78.5.
+
 ## 2.3.1
 
 ### Patch Changes

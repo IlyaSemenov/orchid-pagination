@@ -1,24 +1,11 @@
-import type { OrderField } from "../../query"
+import type { OrderField, QueryFieldRef } from "../../query"
 import type { ListQuery } from "../../types"
-
-/** Minimal Orchid reference shape compatible with the nullability metadata used here. */
-type OrderFieldRef = {
-  toSQL(): string
-  result?: {
-    value?: {
-      data?: {
-        isNullable?: boolean
-        key?: string
-      }
-    }
-  }
-}
 
 type SelectAsItem = {
   selectAs?: Record<string, unknown>
 }
 
-function resolveOrderFieldRef(query: ListQuery, field: string): [ref: OrderFieldRef, sourceField: string] {
+function resolveOrderFieldRef(query: ListQuery, field: string): [ref: QueryFieldRef, sourceField: string] {
   const select = query.q.select as unknown[] | undefined
   for (const item of select ?? []) {
     const source = typeof item === "object" && item
@@ -28,10 +15,10 @@ function resolveOrderFieldRef(query: ListQuery, field: string): [ref: OrderField
       continue
     }
     if (typeof source === "string") {
-      return [query.ref(source) as unknown as OrderFieldRef, source]
+      return [query.ref(source) as unknown as QueryFieldRef, source]
     }
 
-    const ref = query.ref(field) as unknown as OrderFieldRef
+    const ref = query.ref(field) as unknown as QueryFieldRef
     const quotedField = `"${field.replaceAll("\"", "\"\"")}"`
     if (ref.toSQL() !== `${quotedField}.${quotedField}`) {
       throw new Error(
@@ -41,7 +28,7 @@ function resolveOrderFieldRef(query: ListQuery, field: string): [ref: OrderField
     return [ref, field]
   }
 
-  return [query.ref(field) as unknown as OrderFieldRef, field]
+  return [query.ref(field) as unknown as QueryFieldRef, field]
 }
 
 /** Returns true unless Orchid identifies the field as a direct NOT NULL column. */

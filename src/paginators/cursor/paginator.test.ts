@@ -9,6 +9,38 @@ function keysOf(item: unknown): string[] {
 }
 
 describe("paginateByCursor", () => {
+  test("paginates uuid, date/time, and numeric order columns", async () => {
+    await db.cursorType.insertMany([
+      {
+        id: 1,
+        uuid: "00000000-0000-0000-0000-000000000001",
+        timestamp: new Date("2020-01-01T00:00:00.000Z"),
+        timestamptz: new Date("2020-01-01T00:00:00.000Z"),
+        date: new Date("2020-01-01T00:00:00.000Z"),
+        numeric: "1.25",
+        integer: 10,
+      },
+      {
+        id: 2,
+        uuid: "00000000-0000-0000-0000-000000000002",
+        timestamp: new Date("2020-01-02T00:00:00.000Z"),
+        timestamptz: new Date("2020-01-02T00:00:00.000Z"),
+        date: new Date("2020-01-02T00:00:00.000Z"),
+        numeric: "2.5",
+        integer: 20,
+      },
+    ])
+
+    for (const field of ["uuid", "timestamp", "timestamptz", "date", "numeric", "integer"] as const) {
+      const order = { [field]: "ASC", id: "ASC" } as const
+      const first = await paginateByCursor(db.cursorType.order(order), { limit: 1 })
+      const second = await paginateByCursor(db.cursorType.order(order), { limit: 1 }, { cursor: first.nextCursor })
+
+      expect(getIds(first.items)).toEqual([1])
+      expect(getIds(second.items)).toEqual([2])
+    }
+  })
+
   test("throws for unordered queries", async () => {
     await expect(paginateByCursor(db.user.all(), { limit: 2 })).rejects.toThrow("Query must be ordered.")
   })

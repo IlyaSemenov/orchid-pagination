@@ -49,9 +49,24 @@ class TaskTable extends BaseTable {
   }))
 }
 
+class CursorTypeTable extends BaseTable {
+  override readonly table = "cursor_type"
+
+  override columns = this.setColumns(t => ({
+    id: t.serial().primaryKey(),
+    uuid: t.uuid(),
+    timestamp: t.timestampNoTZ(),
+    timestamptz: t.timestamp(),
+    date: t.date(),
+    numeric: t.decimal(),
+    integer: t.integer(),
+  }))
+}
+
 export const db = orchidORM(
   { databaseURL: import.meta.env.DATABASE_URL },
   {
+    cursorType: CursorTypeTable,
     post: PostTable,
     task: TaskTable,
     user: UserTable,
@@ -65,6 +80,15 @@ export function useTestDb() {
       create table "user" (id serial not null primary key, name varchar not null, score integer, "group" varchar not null);
       create table "post" (id serial not null primary key, author_id integer references "user"(id) not null, text varchar);
       create table "task" (id serial not null primary key, due_at timestamp);
+      create table cursor_type (
+        id serial not null primary key,
+        uuid uuid not null,
+        timestamp timestamp not null,
+        timestamptz timestamptz not null,
+        date date not null,
+        numeric numeric not null,
+        integer integer not null
+      );
     `
   })
 

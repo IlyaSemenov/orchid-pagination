@@ -20,7 +20,11 @@ function resolveOrderFieldRef(query: ListQuery, field: string): [ref: QueryField
 
     const ref = query.ref(field) as unknown as QueryFieldRef
     const quotedField = `"${field.replaceAll("\"", "\"\"")}"`
-    if (ref.toSQL() !== `${quotedField}.${quotedField}`) {
+    const refSql = ref.toSQL()
+    const selectedAliasSql = `${quotedField}.${quotedField}`
+    // Orchid ORM 1.78.5 represents a selected scalar relation as a one-element
+    // array, so its WHERE-safe alias reference has a `[1]` suffix.
+    if (refSql !== selectedAliasSql && refSql !== `${selectedAliasSql}[1]`) {
       throw new Error(
         `Cannot order by selected expression alias "${field}" in cursor pagination because it is not available in WHERE.`,
       )

@@ -55,7 +55,7 @@
     "@types/node": "^22.10.1",
     "@typescript/native": "npm:typescript@~7.0.2",
     "eslint": "^9.35.0",
-    "orchid-orm": "1.68.5",
+    "orchid-orm": "1.78.5",
     "postgres": "^3.4.9",
     "publint": "^0.3.22",
     "tsdown": "^0.22.14",

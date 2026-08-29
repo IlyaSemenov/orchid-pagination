@@ -21,7 +21,7 @@
       },
       "peerDependencies": {
         "@types/node": ">=18",
-        "orchid-orm": "^1.68.5",
+        "orchid-orm": "^1.51.0",
       },
     },
   },

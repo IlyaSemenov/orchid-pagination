@@ -1,5 +1,11 @@
 # orchid-pagination
 
+## 2.4.1
+
+### Patch Changes
+
+- 6b629b8: Lower the required orchid-orm peer version to ^1.51.0.
+
 ## 2.4.0
 
 ### Minor Changes

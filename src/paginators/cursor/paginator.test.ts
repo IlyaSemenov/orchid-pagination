@@ -593,6 +593,49 @@ describe("paginateByCursor", () => {
     expect(back.nextCursor).toBeTypeOf("string")
   })
 
+  test("returns an empty page when the rows after a forward cursor are gone", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+    ])
+
+    const first = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 1 })
+    await db.user.where({ id: 2 }).delete()
+    const second = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 1 }, { cursor: first.nextCursor })
+
+    expect(getIds(first.items)).toEqual([1])
+    expect(second.items).toEqual([])
+    expect(second.limit).toBe(1)
+    expect(second.prevCursor).toBeUndefined()
+    expect(second.nextCursor).toBeUndefined()
+  })
+
+  test("returns an empty page when the rows before a reverse cursor are gone", async () => {
+    await seedUsers([
+      { id: 1, name: "a", score: 10, group: "one" },
+      { id: 2, name: "b", score: 20, group: "one" },
+    ])
+
+    const first = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 1 })
+    const second = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 1 }, { cursor: first.nextCursor })
+    await db.user.where({ id: 1 }).delete()
+    const back = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 1 }, { cursor: second.prevCursor })
+
+    expect(getIds(second.items)).toEqual([2])
+    expect(back.items).toEqual([])
+    expect(back.prevCursor).toBeUndefined()
+    expect(back.nextCursor).toBeUndefined()
+  })
+
+  test("returns an empty first page without a cursor", async () => {
+    const page = await paginateByCursor(db.user.order({ id: "ASC" }), { limit: 2 })
+
+    expect(page.items).toEqual([])
+    expect(page.limit).toBe(2)
+    expect(page.prevCursor).toBeUndefined()
+    expect(page.nextCursor).toBeUndefined()
+  })
+
   test("clamps requested limit by config", async () => {
     await seedUsers([
       { id: 1, name: "a", score: 10, group: "one" },

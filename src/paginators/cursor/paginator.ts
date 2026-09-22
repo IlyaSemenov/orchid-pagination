@@ -115,18 +115,23 @@ export function prepareCursorPagination<T extends ListQuery>(query: T, config?: 
         }), reverse)
       }
 
+      // Cursors take their values from rows of this page, so an empty page has
+      // no cursors. The page can be empty when the rows a cursor points past
+      // were deleted or filtered out between page requests.
+      const hasItems = items.length > 0
+
       // Prev cursor:
       // - for initial pagination, there is no prev page
       // - for forward pagination, prev page exists always
       // - for reverse pagination, prev page exists if we have a continuation
-      const prevCursor = (parsedCursor && (parsedCursor.reverse === false || hasContinuation))
+      const prevCursor = (hasItems && parsedCursor && (parsedCursor.reverse === false || hasContinuation))
         ? createItemCursor(0, true)
         : undefined
 
       // Next cursor:
       // - for reverse pagination, next page exists always
       // - for initial or forward pagination, next page exists if we have a continuation
-      const nextCursor = (parsedCursor?.reverse === true || hasContinuation)
+      const nextCursor = (hasItems && (parsedCursor?.reverse === true || hasContinuation))
         ? createItemCursor(items.length - 1, false)
         : undefined
 

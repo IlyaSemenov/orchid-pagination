@@ -173,6 +173,44 @@ describe("paginateByCursor", () => {
     expect(page.items[0]).not.toHaveProperty("__cursor_0")
   })
 
+  test.each([
+    { selection: "implicit", explicitStar: false },
+    { selection: "explicit *", explicitStar: true },
+  ])("captures computed order fields with $selection selection", async ({ explicitStar }) => {
+    await seedUsers([
+      { id: 1, name: "Alice", score: 10, group: "one" },
+      { id: 2, name: "Bob", score: 20, group: "one" },
+      { id: 3, name: "Carol", score: 30, group: "one" },
+    ])
+
+    const query = () => (explicitStar ? db.user.select("*") : db.user).order("nameLabel", "id")
+
+    const first = await paginateByCursor(query(), { limit: 1 })
+    const second = await paginateByCursor(query(), { limit: 1 }, { cursor: first.nextCursor })
+    const back = await paginateByCursor(query(), { limit: 1 }, { cursor: second.prevCursor })
+
+    expect(getIds(first.items)).toEqual([1])
+    expect(getIds(second.items)).toEqual([2])
+    expect(getIds(back.items)).toEqual([1])
+    for (const page of [first, second, back]) {
+      expect(keysOf(page.items[0]).sort()).toEqual(["group", "id", "name", "score"])
+    }
+  })
+
+  test("keeps an explicitly selected computed order field", async () => {
+    await seedUsers([
+      { id: 1, name: "Alice", score: 10, group: "one" },
+      { id: 2, name: "Bob", score: 20, group: "one" },
+    ])
+
+    const query = () => db.user.select("id", "nameLabel").order("nameLabel", "id")
+    const first = await paginateByCursor(query(), { limit: 1 })
+    const second = await paginateByCursor(query(), { limit: 1 }, { cursor: first.nextCursor })
+
+    expect(first.items).toEqual([{ id: 1, nameLabel: "alice!" }])
+    expect(second.items).toEqual([{ id: 2, nameLabel: "bob!" }])
+  })
+
   test("respects cursorAliasPrefix config", async () => {
     await seedUsers([
       { id: 1, name: "a", score: 10, group: "one" },

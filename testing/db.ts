@@ -20,6 +20,10 @@ class UserTable extends BaseTable {
       references: ["authorId"],
     }),
   }
+
+  computed = this.setComputed(q => ({
+    nameLabel: q.sql`nullif(lower(${q.column("name")}), ${"hidden"}) || ${"!"}`.type(t => t.string().nullable()),
+  }))
 }
 
 class PostTable extends BaseTable {

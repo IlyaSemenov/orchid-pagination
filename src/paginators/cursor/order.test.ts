@@ -13,7 +13,7 @@ describe("applyCursorOrder", () => {
     const sql = (ordered as never as { toSQL(): { text: string } }).toSQL()
 
     expect(sql.text).toBe(
-      `SELECT * FROM "user" ORDER BY ("user"."score" IS NULL) ASC,"user"."score" ASC,"user"."id" DESC`,
+      `SELECT * FROM "user" ORDER BY ("user"."score" IS NULL) ASC, "user"."score" ASC, "user"."id" DESC`,
     )
   })
 
@@ -29,7 +29,7 @@ describe("applyCursorOrder", () => {
     const sql = (ordered as never as { toSQL(): { text: string } }).toSQL()
 
     expect(sql.text).toBe(
-      `SELECT * FROM "user" ORDER BY ("user"."score" IS NULL) DESC,"user"."score" DESC,"user"."id" ASC`,
+      `SELECT * FROM "user" ORDER BY ("user"."score" IS NULL) DESC, "user"."score" DESC, "user"."id" ASC`,
     )
   })
 
@@ -41,7 +41,7 @@ describe("applyCursorOrder", () => {
     const sql = (ordered as never as { toSQL(): { text: string } }).toSQL()
 
     expect(sql.text).toBe(
-      `SELECT "user"."id", "user"."score" "s" FROM "user" ORDER BY ("user"."score" IS NULL) ASC,"user"."score" ASC,"user"."id" DESC`,
+      `SELECT "user"."id", "user"."score" "s" FROM "user" ORDER BY ("user"."score" IS NULL) ASC, "user"."score" ASC, "user"."id" DESC`,
     )
   })
 

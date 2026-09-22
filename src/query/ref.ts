@@ -2,10 +2,10 @@ import type { ListQuery } from "../types"
 
 /**
  * Minimal ref metadata shape reverse-engineered from and verified against
- * Orchid ORM 1.68.5.
+ * Orchid ORM 1.78.5.
  */
 export type QueryFieldRef = {
-  toSQL(): string
+  toSQL(ctx: { values: unknown[] }): string
   result?: {
     value?: {
       dataType?: string
@@ -49,7 +49,7 @@ export function resolveQueryFieldRef(query: ListQuery, field: string): [ref: Que
 
     const ref = query.ref(field) as unknown as QueryFieldRef
     const quotedField = `"${field.replaceAll("\"", "\"\"")}"`
-    const refSql = ref.toSQL()
+    const refSql = ref.toSQL({ values: [] })
     const selectedAliasSql = `${quotedField}.${quotedField}`
     // Orchid ORM 1.78.5 represents a selected scalar relation as a one-element
     // array, so its WHERE-safe alias reference has a `[1]` suffix.
@@ -65,15 +65,4 @@ export function resolveQueryFieldRef(query: ListQuery, field: string): [ref: Que
 /** Returns the Orchid ref for a query field, resolving simple selected-column aliases. */
 export function queryFieldRef(query: ListQuery, field: string): QueryFieldRef {
   return resolveQueryFieldRef(query, field)[0]
-}
-
-/** Returns SQL for a query field, resolving simple selected-column aliases. */
-export function queryFieldToSQL(query: ListQuery, field: string): string {
-  return queryFieldRef(query, field).toSQL()
-}
-
-/** Casts a text binding to the PostgreSQL type reported by Orchid. */
-export function queryFieldBindingToSQL(ref: QueryFieldRef, bindingSql: string): string {
-  const dataType = ref.result?.value?.dataType
-  return dataType ? `${bindingSql}::text::${dataType}` : bindingSql
 }

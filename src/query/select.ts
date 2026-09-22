@@ -1,35 +1,28 @@
 import type { ListQuery } from "../types"
 
-export interface QuerySelectedKeys {
-  /**
-   * True when the query selects all columns of the main table (no `.select(...)` or a `"*"` item).
-   * Does NOT cover joined/relation columns.
-   */
-  all: boolean
-  /** Set of result-row aliases produced by the SELECT list. */
-  keys: Set<string>
-}
-
 /**
- * getQuerySelectedKeys inspects the query's SELECT list.
+ * Returns the result-row keys produced by the query's SELECT list.
+ * Implicit selection and `"*"` expand to main-table columns that do not require explicit selection.
  *
  * For a string item `"col"` the alias is `"col"`, for `"table.col"` it is
  * `"col"`, for a `{ selectAs: {...} }` item they are the object keys.
  */
-export function getQuerySelectedKeys(query: ListQuery): QuerySelectedKeys {
+export function getQuerySelectedKeys(query: ListQuery): Set<string> {
   const select = query.q.select
-  let all = false
   const keys = new Set<string>()
 
-  if (!select || select.length === 0) {
-    all = true
-    return { all, keys }
+  if (!select?.length || select.includes("*")) {
+    const shape = query.q.selectAllShape as typeof query.q.selectShape
+    for (const key in shape) {
+      if (!shape[key]!.data.explicitSelect) {
+        keys.add(key)
+      }
+    }
   }
 
-  for (const item of select) {
+  for (const item of select ?? []) {
     if (typeof item === "string") {
       if (item === "*") {
-        all = true
         continue
       }
       const dotIndex = item.indexOf(".")
@@ -42,5 +35,5 @@ export function getQuerySelectedKeys(query: ListQuery): QuerySelectedKeys {
     }
   }
 
-  return { all, keys }
+  return keys
 }

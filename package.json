@@ -40,7 +40,7 @@
     "prepare": "lefthook install",
     "prepublishOnly": "bun run build",
     "test": "bun test",
-    "types": "tsc"
+    "types": "tsc && tsc -p tests/tsconfig.json"
   },
   "peerDependencies": {
     "@types/node": ">=18",

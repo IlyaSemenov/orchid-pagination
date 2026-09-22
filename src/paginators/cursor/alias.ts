@@ -35,7 +35,7 @@ export interface CursorColumns {
  * fail with a clear error otherwise.
  */
 export function prepareCursorColumns(query: ListQuery, orderFields: OrderField[], prefix: string): CursorColumns {
-  const { all: selectAll, keys: selectedKeys } = getQuerySelectedKeys(query)
+  const selectedKeys = getQuerySelectedKeys(query)
   const joinedShapes = (query.q.joinedShapes && Object.keys(query.q.joinedShapes)) || []
 
   // For each order field, resolve where its value lives in the result row: an
@@ -46,7 +46,7 @@ export function prepareCursorColumns(query: ListQuery, orderFields: OrderField[]
   const selectObj: Record<string, unknown> = {}
   let cursorIdx = 0
   for (const [field] of orderFields) {
-    switch (classifyOrderField(field, selectAll, selectedKeys, joinedShapes)) {
+    switch (classifyOrderField(field, selectedKeys, joinedShapes)) {
       case "present":
         sources.push({ field })
         break
@@ -77,6 +77,10 @@ export function prepareCursorColumns(query: ListQuery, orderFields: OrderField[]
 
   return {
     apply(query) {
+      // Appending a select replaces the implicit selection, so make it explicit first.
+      if (injectedAliases.length && !query.q.select?.length) {
+        query = query.selectAll()
+      }
       // selectObj holds ref() expressions keyed by alias; its Record type doesn't
       // line up with select()'s SelectAsArg, so cast the argument.
       // Both branches return a clone because q.transform is assigned below.
@@ -119,10 +123,10 @@ export function prepareCursorColumns(query: ListQuery, orderFields: OrderField[]
 type OrderFieldSource = "present" | "inject" | "error"
 
 /** classifyOrderField determines how an order field's value is obtained from a result row. */
-function classifyOrderField(field: string, selectAll: boolean, selectedKeys: Set<string>, joinedShapes: string[]): OrderFieldSource {
+function classifyOrderField(field: string, selectedKeys: Set<string>, joinedShapes: string[]): OrderFieldSource {
   const dotIndex = field.indexOf(".")
   if (dotIndex === -1) {
-    return selectAll || selectedKeys.has(field) ? "present" : "inject"
+    return selectedKeys.has(field) ? "present" : "inject"
   }
 
   // Relation path: covered only when the relation itself is selected.
